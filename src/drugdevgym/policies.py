@@ -692,6 +692,87 @@ SELECTIVITY_PANEL = {
 SP_INTERACTIONS = {"single_point_as_curve": "single_point"}
 POLICIES["selectivity_panel"] = SELECTIVITY_PANEL
 
+# ---------------------------------------------------------------- cytotoxicity window
+
+from .analysis import estimate_cc50  # noqa: E402
+
+# The reference design. Changed after the first card, following review: one well per dose and 6 dose
+# points instead of 2 and 8 (the first design was dominated by this cheaper one). A second pass also gave
+# it 5 untreated wells per plate for a vehicle-health term of the gate; both went again in the third
+# pass, so the controls are those of the first card. See docs/ASSUMPTIONS.md.
+CX_EXPERT = {"top_conc_uM": 100.0, "dilution_factor": 2.0, "n_points": 6, "replicates": 1, "exposure_h": 72,
+             "cells_k": 4.0, "match_dmso": True, "vehicle_controls": 5, "kill_controls": 5,
+             "interference_control": True, "avoid_edges": True, "lid": True}
+
+CX_CHOICES = {
+    "top_conc_uM": [10.0, 30.0, 100.0],
+    "dilution_factor": [2.0, 3.16, 10.0],
+    "n_points": [6, 8, 10],
+    "replicates": [1, 2, 3],
+    "exposure_h": [24, 48, 72],
+    "cells_k": [1.0, 4.0, 10.0, 20.0],
+    "match_dmso": [False, True],
+    "vehicle_controls": [0, 3, 5, 8],
+    "kill_controls": [0, 3, 5, 8],
+    "interference_control": [False, True],
+    "avoid_edges": [False, True],
+    "lid": [False, True],
+}
+
+
+class CytotoxPolicy:
+    """Run one design, read every CC50 with analysis.estimate_cc50, and report.
+
+    design=None answers without running anything: every compound "clean, at least 100 uM",
+    which the reward scores as an unsupported bound.
+    use_turbidity=False takes the nominal dose as real exposure above the solubility limit.
+    bound_when_clean=False reports the top dose of a clean compound as a measured CC50.
+    """
+
+    def __init__(self, design: dict | None, use_turbidity: bool = True, bound_when_clean: bool = True):
+        self.design = design
+        self.use_turbidity = use_turbidity
+        self.bound_when_clean = bound_when_clean
+
+    def act(self, obs: dict) -> dict:
+        if obs.get("phase") == "start":
+            if self.design is None:
+                return {"type": "report", "results": {c["id"]: {"cc50_uM": 100.0, "at_least": True}
+                                                      for c in obs["compounds"]}}
+            return {"type": "run", "design": self.design}
+        if obs.get("phase") == "data":
+            return {"type": "report",
+                    "results": estimate_cc50(obs["wells"], self.use_turbidity, self.bound_when_clean)}
+        return {"type": "report", "results": {}}
+
+
+def _cx(**changes):
+    return lambda seed: CytotoxPolicy({**CX_EXPERT, **changes})
+
+
+def random_cx_design(rng: np.random.Generator) -> dict:
+    """A random design: one of CX_CHOICES per field. Every combination fits a plate."""
+    return {k: v[int(rng.integers(len(v)))] for k, v in CX_CHOICES.items()}
+
+
+def _random_cx(seed: int) -> CytotoxPolicy:
+    return CytotoxPolicy(random_cx_design(np.random.default_rng([seed, 99])))
+
+
+CYTOTOX_WINDOW = {
+    "expert": _cx(),
+    "unmatched_dmso": _cx(match_dmso=False),
+    "short_exposure": _cx(exposure_h=24),
+    "edge_wells": _cx(avoid_edges=False),
+    "no_kill_control": _cx(kill_controls=0),
+    "no_interference_control": _cx(interference_control=False),
+    "nominal_above_solubility": lambda seed: CytotoxPolicy(dict(CX_EXPERT), use_turbidity=False),
+    "exact_not_bound": lambda seed: CytotoxPolicy(dict(CX_EXPERT), bound_when_clean=False),
+    "random": _random_cx,
+    "null": lambda seed: CytotoxPolicy(None),
+}
+POLICIES["cytotox_window"] = CYTOTOX_WINDOW
+
 
 def run_episode(env, policy) -> tuple[float, dict]:
     """Drive one environment to the end with one policy. Returns (total reward, final info)."""

@@ -74,3 +74,24 @@ def accumulated(loss_per_min: float, minutes: float) -> float:
 def uninhibited_fraction(inhibitor: float, ki: float) -> float:
     """Enzyme activity left under a competitive inhibitor with the substrate far below its Km: 1 / (1 + [I] / Ki)."""
     return float(1.0 / (1.0 + max(float(inhibitor), 0.0) / ki))
+
+
+def survival(conc, half_conc: float, n: float = 1.0):
+    """Fraction of cells surviving an exposure: 1 minus a Hill response, 0.5 at `half_conc`."""
+    return 1.0 - hill(conc, half_conc, n)
+
+
+def haber_shift(hours: float, reference_hours: float, exponent: float) -> float:
+    """Haber-type exposure rule (C ** n * t = constant): fold rise of the half-effect concentration
+    when the exposure lasts `hours` instead of `reference_hours`. exponent = 1 / n; 0 = no time dependence."""
+    return float((reference_hours / hours) ** exponent)
+
+
+def dissolved(conc, solubility: float):
+    """Concentration actually in solution: the total, capped at the solubility limit."""
+    return np.minimum(np.maximum(np.asarray(conc, float), 0.0), solubility)
+
+
+def grown(cells, hours: float, doubling_h: float, capacity: float):
+    """Exponential growth up to a carrying capacity: a confluent well cannot hold more cells."""
+    return np.minimum(np.maximum(np.asarray(cells, float), 0.0) * 2.0 ** (hours / doubling_h), capacity)

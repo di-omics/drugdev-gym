@@ -389,3 +389,59 @@ said = "Report an inactive off-target as greater than the top dose, never as the
 why = "The top dose is only where the test stopped; written as a number it puts the window where the test ended instead of where the compound is."
 traps = ["inactive_as_number"]
 status = "draft"
+
+[[rule]]
+id = "match-the-dmso"
+env = "cytotox_window"
+said = "Keep the DMSO the same in every well, the vehicle control included."
+why = "A solvent control has to carry the solvent of the dosed wells, or a loss of signal cannot be told from the DMSO's own effect. Scored here as a QC convention, not as a simulated effect: a plate whose vehicle wells do not carry the DMSO of its top dose fails the gate. At 1% DMSO the mismatch itself costs about 11% of the signal in the top well, which a CC50 does not show."
+traps = ["unmatched_dmso"]
+status = "draft"
+
+[[rule]]
+id = "expose-long-enough"
+env = "cytotox_window"
+said = "Read viability after 72 hours, not after one day."
+why = "Compounds that stop growth or kill slowly show little after 24 hours, so a short exposure misses them."
+traps = ["short_exposure"]
+status = "draft"
+
+[[rule]]
+id = "keep-multi-day-plates-off-the-outer-ring"
+env = "cytotox_window"
+said = "Keep cells and controls off the outer ring in a multi-day assay."
+why = "Outer wells plate fewer cells and lose water over days even under a lid, so controls there no longer match the inner wells."
+traps = ["edge_wells"]
+status = "draft"
+
+[[rule]]
+id = "full-kill-control-on-every-plate"
+env = "cytotox_window"
+said = "Put a full-kill control next to the vehicle control on every plate."
+why = "Without a zero-viability reference the signal cannot be normalised and the plate has no window to pass QC on."
+traps = ["no_kill_control"]
+status = "draft"
+
+[[rule]]
+id = "check-the-readout-without-cells"
+env = "cytotox_window"
+said = "Run the compound against the detection reagent without cells before you call a loss of signal toxicity."
+why = "A compound that inhibits luciferase lowers the luminescence with every cell still alive."
+traps = ["no_interference_control"]
+status = "draft"
+
+[[rule]]
+id = "nominal-is-not-exposure-above-solubility"
+env = "cytotox_window"
+said = "Do not count a dose above the solubility limit as exposure."
+why = "Compound that has come out of solution does not reach the cells, so a clean result there says nothing."
+traps = ["nominal_above_solubility"]
+status = "draft"
+
+[[rule]]
+id = "report-clean-as-a-bound"
+env = "cytotox_window"
+said = "When nothing dies up to the top dose, report the CC50 as greater than the top dose, not as a number."
+why = "The top dose is where the measurement stopped, so the window is at least that wide, not equal to it."
+traps = ["exact_not_bound"]
+status = "draft"

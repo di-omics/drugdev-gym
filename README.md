@@ -62,8 +62,9 @@ flowchart LR
 | `gi_fluid_stability` | which peptides go in gastric and intestinal fluid, time points, the quench per fluid, fresh or stored enzyme, the activity control, time zero, the internal standard | half-lives in each fluid, acid lability, the enzyme lot's activity | log half-life accuracy per peptide and fluid, halved if the run fails its QC |
 | `gi_camp_potency` | forskolin level and cell number (titrated or from the handbook), IBMX, the agonist dilution, standards, how the curve top is fitted | agonist pEC50s at a Gi-coupled receptor, the cell line's forskolin potency and cAMP output | pEC50 accuracy, halved if a potency plate fails Z' 0.5 |
 | `selectivity_panel` | which target each plate serves, single-point screen or full curve, the off-target dose range, controls and standards, and how each window is reported: a number or an honest lower bound | on-target and four off-target pEC50s for 4 compounds | accuracy of each selectivity window; a true bound at the labware limit is paid, a claim beyond what the data supports scores -0.5 |
+| `cytotox_window` | the viability dose-response: dose range, exposure time, cells per well, DMSO matching, vehicle and full-kill controls, a cell-free interference control, layout; and how each CC50 is reported: a number or an honest lower bound | for 6 compounds: the CC50 after 72 h, fast or slow kinetics, a solubility limit, and for a few interference with the readout | CC50 accuracy; a true, tested bound is paid; a false alarm, a missed liability and a bound above what was tested lose credit; halved if a plate fails QC |
 
-The last three were built by the environment factory (below), not by hand.
+The last four were built by the environment factory (below), not by hand.
 
 ## Quick start
 
@@ -101,12 +102,12 @@ test checks every reference policy's episodes for truth field names.
 
 ## Expert rules: what the rewards can teach
 
-46 rules, 58 rule-trap pairs, 200 seeds each on the nominal rig
-([results/knowledge.md](results/knowledge.md)). **All 46 rules are drafts seeded from general
+53 rules, 65 rule-trap pairs, 200 seeds each on the nominal rig
+([results/knowledge.md](results/knowledge.md)). **All 53 rules are drafts seeded from general
 bench practice. None has been reviewed by an expert yet.**
 
-- The reward teaches 26 pairs outright (the expert wins on at least 90% of seeds).
-- It teaches 25 only on average.
+- The reward teaches 30 pairs outright (the expert wins on at least 90% of seeds).
+- It teaches 28 only on average.
 - It is blind to 7: no lid in `dose_response` and `assay_window`, choosing conditions by
   raw-ratio Z' in `assay_window`, skipping the standard curve or the internal standard
   upstream inside `lead_opt`, and both forskolin decisions in `gi_camp_potency` (saturating
@@ -174,6 +175,7 @@ their own.
 | `timecourse_review` | 0.88 (scripted QC rules, seeds 10000+) | none | never questioning the data, repeating everything | none |
 | `gi_fluid_stability` | 0.83 | stored enzyme (92.0%), no activity control, no internal standard, fitting against the clock while the enzyme weakens; acid quench in gastric fluid left warm overnight (two changes) | acid quench in gastric fluid, late first time point, no true time zero | none |
 | `gi_camp_potency` | 0.63 | no forskolin, raw ratio instead of the cAMP standard curve, no mixing | no IBMX, free curve top, too many cells | saturating forskolin, skipping the forskolin titration |
+| `cytotox_window` | 0.83 | unmatched DMSO and no full-kill control (both by the QC gate), doses above solubility counted as exposure, "clean" reported as an exact number | short exposure, edge wells, no interference control | none |
 | `selectivity_panel` | 0.62 | off-targets dosed only over the on-target range, single-point screens, no controls, no standard curve on the off-target plates, on-target only, a window claimed past the tested range; a single-point hit reported as a curve (two changes) | raw ratio on every plate, "inactive" reported as an exact number | none |
 
 What that says, plainly:
@@ -207,6 +209,13 @@ What that says, plainly:
   credit only within 0.5 log units of the 100 uM limit). Only single-point screens and the
   missing standard curve lose through the data. Its plate budget never binds with four
   compounds, so the plan is forced and the judgment is in the dose range and the report.
+- `cytotox_window` teaches its four visible rules by convention, not by simulated data. Skipping
+  the DMSO match and leaving out the full-kill control fail the QC gate by rule; a dose above
+  solubility and a "clean" number lose through the reporting rules. With the matched-vehicle
+  rule switched off, skipping the DMSO match scores level with the expert or slightly ahead
+  (the expert wins about 41% of seeds), because below 1% DMSO the mismatch costs almost
+  nothing. The three mistakes that lose through the simulated data (short exposure, edge
+  wells, no interference control) are only weak.
 - The floor is low in three environments: a null policy that answers without running
   anything scores 0.06 to 0.21 in `dose_response`, `stability` and `lead_opt`. `assay_window`
   has no null; a fixed kit-default commit with no pilots scores 0.48 against 0.60.
@@ -306,7 +315,7 @@ what they claim. A third fixes what was found. Then the gate is run on seeds nob
 | `gi_camp_potency` | admitted, narrowly | expert 0.63, exactly three traps visible, two blind |
 | `antagonist_potency` | held on its branch, twice | reusing tips on the agonist ladder scores above the expert: its error cancels the tip-loss bias. A second pass added a reference antagonist of known potency and made it worse: correcting to the reference cancels the very analysis errors the rules are about, and a policy that skips the agonist curve then beats the expert on 82% of seeds. That commit is reverted on the branch |
 | `selectivity_panel` | admitted on the second pass | expert 0.62 (0.64 on fresh seeds), six single mistakes visible, none inverted. The first review found four holes in the reward, the largest that a report with no supporting data scored the same as no report; all four are closed |
-| `cytotox_window` | held on its branch, twice | skipping the DMSO match still scores level with or above the expert after a second pass: the mistake saves tips and costs almost nothing below 1% DMSO, and the health check added for it can only fail the matched protocol |
+| `cytotox_window` | admitted on the third pass | expert 0.83 (0.82 on fresh seeds), four mistakes visible, none inverted. Two passes could not make the simulated data punish a skipped DMSO match, so it is now a QC convention: the vehicle wells must carry the top dose's DMSO. Without that rule the reward slightly prefers the mistake |
 
 A failed gate is a result. Each held environment names the rule its reward cannot yet teach.
 
@@ -316,7 +325,8 @@ A failed gate is a result. Each held environment names the rule its reward canno
 - The expert policies are scripted references, not upper bounds.
 - Two cell assay formats (Gq-style and Gi cAMP, both competitive TR-FRET), two stability
   formats (plasma-style and gastric and intestinal fluid), one small additive SAR landscape.
-  Selectivity is one panel of four compounds. No PK, solubility, or toxicity yet.
+  Selectivity is one panel of four compounds and toxicity is one general viability assay. No
+  PK, organ-level safety or solubility assay yet.
 - The shared liquid handler loses a little compound to every tip, fresh or not. Three
   factory builds traced a bias of 0.04 to 0.08 log units in scripted potencies to it, and in
   two unmerged environments it offsets a real mistake. Whether the size is right is a
@@ -333,9 +343,9 @@ A failed gate is a result. Each held environment names the rule its reward canno
 
 ## Roadmap
 
-- Expert review of the 46 draft rules, and new rules in the expert's own words.
+- Expert review of the 53 draft rules, and new rules in the expert's own words.
 - A human expert reference for the review environments.
-- More environments: PK, solubility, hit triage, and the two held on branches (above).
+- More environments: PK, solubility, hit triage, and antagonist potency, held on its branch (above).
   Each must ship with its card.
 - A PyLabRobot compiler for the worklists.
 - Level 1 and 2 data from [docs/DATA.md](docs/DATA.md): instrument QC, then reference-compound replays.

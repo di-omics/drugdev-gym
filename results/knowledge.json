@@ -1,9 +1,9 @@
 {
   "summary": {
-    "rule_traps": 58,
-    "rules": 46,
-    "yes": 26,
-    "on average": 25,
+    "rule_traps": 65,
+    "rules": 53,
+    "yes": 30,
+    "on average": 28,
     "no": 7,
     "inverted": 0,
     "not_measured": 0,
@@ -16,7 +16,7 @@
       "keep-off-the-outer-ring",
       "lid-the-plate"
     ],
-    "draft": 46
+    "draft": 53
   },
   "rows": [
     {
@@ -737,6 +737,90 @@
       "teaches": "on average",
       "win_rate": 0.8575,
       "gap": 0.2054481043855645,
+      "learner": null
+    },
+    {
+      "env": "cytotox_window",
+      "id": "match-the-dmso",
+      "said": "Keep the DMSO the same in every well, the vehicle control included.",
+      "status": "draft",
+      "trap": "unmatched_dmso",
+      "verdict": "visible",
+      "teaches": "yes",
+      "win_rate": 1.0,
+      "gap": 0.42567331892183985,
+      "learner": null
+    },
+    {
+      "env": "cytotox_window",
+      "id": "expose-long-enough",
+      "said": "Read viability after 72 hours, not after one day.",
+      "status": "draft",
+      "trap": "short_exposure",
+      "verdict": "weak",
+      "teaches": "on average",
+      "win_rate": 0.8025,
+      "gap": 0.14714509295147005,
+      "learner": null
+    },
+    {
+      "env": "cytotox_window",
+      "id": "keep-multi-day-plates-off-the-outer-ring",
+      "said": "Keep cells and controls off the outer ring in a multi-day assay.",
+      "status": "draft",
+      "trap": "edge_wells",
+      "verdict": "weak",
+      "teaches": "on average",
+      "win_rate": 0.785,
+      "gap": 0.059924681363355825,
+      "learner": null
+    },
+    {
+      "env": "cytotox_window",
+      "id": "full-kill-control-on-every-plate",
+      "said": "Put a full-kill control next to the vehicle control on every plate.",
+      "status": "draft",
+      "trap": "no_kill_control",
+      "verdict": "visible",
+      "teaches": "yes",
+      "win_rate": 1.0,
+      "gap": 0.42864612125353907,
+      "learner": null
+    },
+    {
+      "env": "cytotox_window",
+      "id": "check-the-readout-without-cells",
+      "said": "Run the compound against the detection reagent without cells before you call a loss of signal toxicity.",
+      "status": "draft",
+      "trap": "no_interference_control",
+      "verdict": "weak",
+      "teaches": "on average",
+      "win_rate": 0.67,
+      "gap": 0.10075213198309929,
+      "learner": null
+    },
+    {
+      "env": "cytotox_window",
+      "id": "nominal-is-not-exposure-above-solubility",
+      "said": "Do not count a dose above the solubility limit as exposure.",
+      "status": "draft",
+      "trap": "nominal_above_solubility",
+      "verdict": "visible",
+      "teaches": "yes",
+      "win_rate": 0.9325,
+      "gap": 0.2724002281147637,
+      "learner": null
+    },
+    {
+      "env": "cytotox_window",
+      "id": "report-clean-as-a-bound",
+      "said": "When nothing dies up to the top dose, report the CC50 as greater than the top dose, not as a number.",
+      "status": "draft",
+      "trap": "exact_not_bound",
+      "verdict": "visible",
+      "teaches": "yes",
+      "win_rate": 1.0,
+      "gap": 0.7859680728062547,
       "learner": null
     }
   ]

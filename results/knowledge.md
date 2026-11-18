@@ -1,7 +1,7 @@
 # Expert rules: what the rewards can teach
 
-46 rules, 58 rule-trap pairs. The reward teaches 26 of them (the expert wins on at least 90% of seeds), 25 only on average, is blind to 7, and rewards the mistake in 0.
-46 of the 46 rules are drafts seeded from general bench practice and have not been reviewed by the expert yet.
+53 rules, 65 rule-trap pairs. The reward teaches 30 of them (the expert wins on at least 90% of seeds), 28 only on average, is blind to 7, and rewards the mistake in 0.
+53 of the 53 rules are drafts seeded from general bench practice and have not been reviewed by the expert yet.
 
 | env | rule | status | trap | reward teaches it | expert wins | reward gap |
 |---|---|---|---|---|---|---|
@@ -63,6 +63,13 @@
 | selectivity_panel | Read every target's plate through its own standard curve before you compare potencies. | draft | raw_ratio | on average | 86.5% | 0.283 |
 | selectivity_panel | Read every target's plate through its own standard curve before you compare potencies. | draft | no_standards | yes | 100.0% | 0.509 |
 | selectivity_panel | Report an inactive off-target as greater than the top dose, never as the top dose. | draft | inactive_as_number | on average | 85.8% | 0.205 |
+| cytotox_window | Keep the DMSO the same in every well, the vehicle control included. | draft | unmatched_dmso | yes | 100.0% | 0.426 |
+| cytotox_window | Read viability after 72 hours, not after one day. | draft | short_exposure | on average | 80.2% | 0.147 |
+| cytotox_window | Keep cells and controls off the outer ring in a multi-day assay. | draft | edge_wells | on average | 78.5% | 0.060 |
+| cytotox_window | Put a full-kill control next to the vehicle control on every plate. | draft | no_kill_control | yes | 100.0% | 0.429 |
+| cytotox_window | Run the compound against the detection reagent without cells before you call a loss of signal toxicity. | draft | no_interference_control | on average | 67.0% | 0.101 |
+| cytotox_window | Do not count a dose above the solubility limit as exposure. | draft | nominal_above_solubility | yes | 93.2% | 0.272 |
+| cytotox_window | When nothing dies up to the top dose, report the CC50 as greater than the top dose, not as a number. | draft | exact_not_bound | yes | 100.0% | 0.786 |
 
 ## What a learner rediscovered from reward alone
 

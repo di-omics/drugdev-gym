@@ -490,3 +490,115 @@ def selectivity_window(on_pec50, off_calls) -> dict | None:
     if measured >= bound:
         return {"window": float(on_pec50 - measured), "at_least": False}
     return {"window": float(on_pec50 - bound), "at_least": True}
+
+
+# ---------------------------------------------------------------- cell viability (ATP luminescence)
+
+TURBIDITY_SD_MULT = 4.0  # a dose counts as precipitated when its turbidity is this many blank SDs above the blank mean
+INTERFERENCE_FLAG = 0.8  # a cell-free signal under this fraction of its reference means the compound hits the readout
+MIN_READOUT_FRACTION = 0.05  # under this cell-free fraction a dose is unreadable even after correction
+
+
+def normalize_viability(lum, vehicle, kill=None) -> np.ndarray:
+    """Fraction viable from raw luminescence: (signal - zero) / (vehicle mean - zero).
+
+    The zero is the mean of the full-kill wells. Without them the zero is taken as no signal
+    at all, which ignores the reagent background. NaN when the window is not positive.
+    """
+    lum, vehicle = np.asarray(lum, float), np.asarray(vehicle, float)
+    kill = np.asarray([] if kill is None else kill, float)
+    zero = float(kill.mean()) if len(kill) else 0.0
+    window = float(vehicle.mean()) - zero if len(vehicle) else float("nan")
+    if not window > 0:
+        return np.full(lum.shape, np.nan)
+    return (lum - zero) / window
+
+
+def viability_zprime(wells: list[dict]) -> dict[int, float]:
+    """Z' between the vehicle and full-kill luminescence of each plate of a viability run."""
+    return {plate: zprime([w["lum"] for w in wells if w["plate"] == plate and w["role"] == "vehicle"],
+                          [w["lum"] for w in wells if w["plate"] == plate and w["role"] == "kill"])
+            for plate in sorted({w["plate"] for w in wells})}
+
+
+def fit_cc50(conc, viability, step: float = 0.02, pad: float = 1.0):
+    """Fit viability = 1 / (1 + (conc / cc50) ** hill), both plateaus fixed by the controls.
+
+    A grid search over the midpoint (from `pad` log units below the lowest dose to `pad` above
+    the highest) and the slope (0.5 to 4), so it is deterministic. A midpoint above the highest
+    dose is an extrapolation: report a bound, not that number. Returns None with fewer than 3
+    usable points or a single concentration.
+    """
+    x, y = np.asarray(conc, float), np.asarray(viability, float)
+    ok = np.isfinite(x) & np.isfinite(y) & (x > 0)
+    if ok.sum() < 3:
+        return None
+    logx, y = np.log10(x[ok]), y[ok]
+    if np.ptp(logx) == 0:
+        return None
+    mids = np.arange(logx.min() - pad, logx.max() + pad + step, step)
+    hills = np.arange(0.5, 4.01, 0.1)
+    m, h = np.meshgrid(mids, hills, indexing="ij")
+    model = 1.0 / (1.0 + 10.0 ** (h[..., None] * (logx - m[..., None])))
+    sse = ((y - model) ** 2).sum(-1)
+    i, j = np.unravel_index(np.argmin(sse), sse.shape)
+    return {"logcc50": float(m[i, j]), "hill": float(h[i, j]), "sse": float(sse[i, j]),
+            "at_edge": bool(i == 0 or i == len(mids) - 1)}
+
+
+def estimate_cc50(wells: list[dict], use_turbidity: bool = True, bound_when_clean: bool = True) -> dict[str, dict]:
+    """CC50 per compound from a viability plate set, each as {"cc50_uM": value, "at_least": bool}.
+
+    Plate by plate. Luminescence is normalised to the vehicle (1) and full-kill (0) wells. With
+    use_turbidity, doses whose mean turbidity pre-read is more than TURBIDITY_SD_MULT blank SDs
+    above the plate's compound-free wells are dropped from the top down as precipitated. When a
+    compound's cell-free control falls under INTERFERENCE_FLAG of the cell-free reference, every
+    dose is divided by its cell-free fraction and doses under MIN_READOUT_FRACTION are dropped.
+    The remaining wells are fitted with fit_cc50. A midpoint at or below the highest usable dose
+    is reported as a measured CC50; otherwise the answer is the bound "at least the highest
+    usable dose". With bound_when_clean off that dose is reported as if it were a measured CC50.
+    A compound is left out when its plate has no vehicle wells, when it has no usable dose, or
+    when there are too few points to fit and the highest usable dose already reads under half.
+    """
+    out: dict[str, dict] = {}
+    for plate in sorted({w["plate"] for w in wells}):
+        on = [w for w in wells if w["plate"] == plate]
+        vehicle = [w["lum"] for w in on if w["role"] == "vehicle"]
+        kill = [w["lum"] for w in on if w["role"] == "kill"]
+        zero = float(np.mean(kill)) if kill else 0.0
+        if not vehicle or not np.mean(vehicle) - zero > 0:
+            continue  # nothing to normalise to
+        blank = np.array([w["turbidity"] for w in on if w["role"] in ("vehicle", "kill")], float)
+        cloudy = np.inf
+        if use_turbidity and len(blank) >= 3:
+            cloudy = float(blank.mean() + TURBIDITY_SD_MULT * blank.std(ddof=1))
+        ref = [w["lum"] for w in on if w["role"] == "cell_free_ref"]
+        ref_window = float(np.mean(ref)) - zero if ref else 0.0
+        for cid in sorted({w["id"] for w in on if w["role"] == "cpd"}):
+            cpd = [w for w in on if w["role"] == "cpd" and w["id"] == cid]
+            doses = sorted({w["conc_uM"] for w in cpd}, reverse=True)
+            while doses and np.mean([w["turbidity"] for w in cpd if w["conc_uM"] == doses[0]]) > cloudy:
+                doses.pop(0)
+            fraction: dict[float, float] = {}
+            if ref_window > 0:
+                for d in sorted({w["conc_uM"] for w in on if w["role"] == "cell_free" and w["id"] == cid}):
+                    seen = [w["lum"] for w in on if w["role"] == "cell_free" and w["id"] == cid and w["conc_uM"] == d]
+                    fraction[d] = (float(np.mean(seen)) - zero) / ref_window
+            if not fraction or min(fraction.values()) >= INTERFERENCE_FLAG:
+                fraction = {}  # the readout is not affected: do not add the control's noise
+            doses = [d for d in doses if fraction.get(d, 1.0) >= MIN_READOUT_FRACTION]
+            if not doses:
+                continue
+            used = [w for w in cpd if w["conc_uM"] in set(doses)]
+            x = np.array([w["conc_uM"] for w in used], float)
+            y = normalize_viability([w["lum"] for w in used], vehicle, kill)
+            y = y / np.array([fraction.get(w["conc_uM"], 1.0) for w in used])
+            top = doses[0]
+            fit = fit_cc50(x, y)
+            if fit is not None and fit["logcc50"] <= np.log10(top):
+                out[cid] = {"cc50_uM": float(10.0 ** fit["logcc50"]), "at_least": False}
+            elif fit is None and float(np.mean(y[x == top])) < 0.5:
+                continue  # toxic at the only usable dose: no number and no honest bound
+            else:
+                out[cid] = {"cc50_uM": float(top), "at_least": bool(bound_when_clean)}
+    return out
