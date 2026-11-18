@@ -19,6 +19,13 @@ def _list(_args) -> None:
     print(f"rigs: {', '.join(RIGS)}; task id = env/rig/seed, any non-negative integer seed")
 
 
+def _positive(text: str) -> int:
+    value = int(text)
+    if value < 1:
+        raise argparse.ArgumentTypeError("must be 1 or more")
+    return value
+
+
 def _plain(value):
     """JSON-safe copy: NaN and infinity become null."""
     if isinstance(value, dict):
@@ -99,13 +106,29 @@ def _knowledge(args) -> None:
 def _cases(args) -> None:
     seeds = human.balanced_seeds(args.env, args.first_seed, args.clean, args.per_fault) if args.balanced else None
     data = human.export_cases(args.env, args.n, args.first_seed, seeds=seeds)
-    Path(args.out).write_text(json.dumps(data) + "\n")
-    print(f"wrote {len(data['cases'])} {args.env} cases to {args.out}")
+    out = Path(args.out)
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_text(json.dumps(data) + "\n")
+    print(f"wrote {len(data['cases'])} {args.env} cases to {out}")
+    if args.truth:
+        Path(args.truth).write_text(json.dumps(human.frozen_truth(data), indent=1) + "\n")
+        print(f"wrote the hidden answers to {args.truth}: keep this file away from the person judging")
 
 
 def _score(args) -> None:
     judgments = json.loads(Path(args.judgments).read_text())
-    score = human.score_judgments(judgments)
+    if bool(args.cases) != bool(args.truth):
+        raise SystemExit("give --cases and --truth together, or neither")
+    if "/" in args.name or "\\" in args.name:
+        raise SystemExit("--name must be a plain name")
+    packs = [json.loads(Path(p).read_text()) for p in args.cases] if args.cases else None
+    truth = None
+    if args.truth:
+        truth = {}
+        for p in args.truth:
+            loaded = json.loads(Path(p).read_text())
+            truth.update(loaded.get("truth", loaded))
+    score = human.score_judgments(judgments, packs=packs, truth=truth)
     out = Path(args.out)
     out.mkdir(parents=True, exist_ok=True)
     (out / f"{args.name}.md").write_text(human.markdown(score, args.name))
@@ -132,15 +155,18 @@ def main(argv=None) -> None:
     p.set_defaults(func=_qc)
     p = sub.add_parser("cases", help="export review cases for a human expert (no truth inside)")
     p.add_argument("--env", required=True, choices=human.REVIEW_ENVS)
-    p.add_argument("--n", type=int, default=12)
+    p.add_argument("--n", type=_positive, default=12, help="number of consecutive seeds (ignored with --balanced)")
     p.add_argument("--first-seed", type=int, default=20000)
     p.add_argument("--balanced", action="store_true", help="cover every fault: --clean clean cases, --per-fault of each fault")
-    p.add_argument("--clean", type=int, default=4)
-    p.add_argument("--per-fault", type=int, default=2)
+    p.add_argument("--clean", type=_positive, default=4)
+    p.add_argument("--per-fault", type=_positive, default=2)
     p.add_argument("--out", required=True)
+    p.add_argument("--truth", help="also write the hidden answers to this file, for frozen scoring later")
     p.set_defaults(func=_cases)
     p = sub.add_parser("score", help="score a human expert's judgments against planted truth")
     p.add_argument("judgments")
+    p.add_argument("--cases", action="append", help="case pack the calls were made on (repeatable)")
+    p.add_argument("--truth", action="append", help="hidden answers frozen at export (repeatable)")
     p.add_argument("--name", default="expert")
     p.add_argument("--out", default="results/human")
     p.set_defaults(func=_score)

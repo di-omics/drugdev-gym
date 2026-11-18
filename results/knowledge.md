@@ -1,6 +1,6 @@
 # Expert rules: what the rewards can teach
 
-24 rules, 33 rule-trap pairs. The reward teaches 13 of them (the expert wins on at least 90% of seeds), 15 only on average, is blind to 5, and rewards the mistake in 0.
+24 rules, 33 rule-trap pairs. The reward teaches 11 of them (the expert wins on at least 90% of seeds), 17 only on average, is blind to 5, and rewards the mistake in 0.
 24 of the 24 rules are drafts seeded from general bench practice and have not been reviewed by the expert yet.
 
 | env | rule | status | trap | reward teaches it | expert wins | reward gap |
@@ -34,10 +34,10 @@
 | lead_opt | Do not rank analogs on a sloppy assay. | draft | upstream_no_internal_standard | no | 54.0% | 0.011 |
 | lead_opt | Use what each round taught you to choose the next analogs. | draft | no_model | on average | 89.5% | 0.185 |
 | lead_opt | Run more than one design-make-test round before nominating. | draft | one_round | yes | 91.5% | 0.265 |
-| plate_review | Check the controls, the replicates and the reference compound before you trust a potency. | draft | always_accept | on average | 77.0% | 0.568 |
-| plate_review | Do not repeat a plate that passes its checks. | draft | always_repeat | yes | 92.5% | 0.554 |
-| timecourse_review | Check time zero, the replicates and the control compound before you trust a half-life. | draft | always_accept | on average | 61.3% | 0.375 |
-| timecourse_review | Do not repeat a time course that passes its checks. | draft | always_repeat | yes | 91.5% | 0.561 |
+| plate_review | Check the controls, the replicates and the reference compound before you trust a potency. | draft | always_accept | on average | 70.5% | 0.246 |
+| plate_review | Do not repeat a plate that passes its checks. | draft | always_repeat | on average | 75.0% | 0.300 |
+| timecourse_review | Check time zero, the replicates and the control compound before you trust a half-life. | draft | always_accept | on average | 61.0% | 0.132 |
+| timecourse_review | Do not repeat a time course that passes its checks. | draft | always_repeat | on average | 74.0% | 0.288 |
 
 ## What a learner rediscovered from reward alone
 

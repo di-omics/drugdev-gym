@@ -170,3 +170,25 @@ def test_worklist_names_what_goes_into_each_well():
     labels = {s.get("what") for s in env.step_log if s["op"] == "fill"}
     assert {"cells", "diluent", "vehicle", "reference agonist", "detection mix"} <= labels
     assert any(str(x).startswith("analyte standard") for x in labels)
+
+
+@pytest.mark.parametrize("env_name", list(ENVS))
+def test_odd_action_shapes_are_rejected_not_crashes(env_name):
+    for action in ({"type": 10 ** 5000}, {"type": None}, {"type": ["judge"]}, "judge", None, {}):
+        obs, reward, done, _ = make(env_name, seed=1).step(action)
+        assert "error" in obs and not done, action
+
+
+def test_editing_an_observation_cannot_flip_a_qc_gate():
+    env = make("dose_response", seed=0)
+    obs, *_ = env.step({"type": "run_plate", "design": {**DR_EXPERT, "controls_per_side": 2}})
+    for w in obs["wells"]:
+        w["role"] = "neg" if w["role"] != "pos" else "pos"
+    obs["wells"].clear()
+    _, _, _, info = env.step({"type": "report", "pEC50": {}})
+    assert not info["qc_pass"]
+    st = make("stability", seed=0)
+    obs, *_ = st.step({"type": "run", "design": {**ST_EXPERT, "replicates": 1}})
+    obs["samples"].clear()
+    assert not st.step({"type": "report", "half_life_min": {}})[3]["qc_pass"]
+    assert "error" in make("dose_response", seed=0).step({"type": "run_plate", "design": {1: 2, "b": 3}})[0]

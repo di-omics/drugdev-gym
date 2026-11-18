@@ -6,6 +6,7 @@ own QC (control Z' below 0.5), minus a small cost term.
 """
 from __future__ import annotations
 
+import copy
 from dataclasses import dataclass
 
 import numpy as np
@@ -221,7 +222,7 @@ class DoseResponse(Env):
             self.plates.append(wells)
             self._record(rig.log)
             self.cost += plate_cost(len(wells), rig.tips)
-            return ({"phase": "data", "plate": len(self.plates), "wells": wells, "cost": round(self.cost, 2),
+            return ({"phase": "data", "plate": len(self.plates), "wells": copy.deepcopy(wells), "cost": round(self.cost, 2),
                      "plates_left": self.MAX_PLATES - len(self.plates)}, 0.0, False, {})
         if action["type"] == "report":
             return self._score(action)

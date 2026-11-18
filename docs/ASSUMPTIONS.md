@@ -39,6 +39,26 @@ These are assumed too, and they set how large each mistake looks.
 | detector noise floor | 0.4% of the time-zero area | sets the limit of quantification; the analysis default drops points under 2% | blank injections |
 | reward tolerance | 0.5 log units | error at which credit reaches zero | minimum significant ratio of the real assay |
 
+## Planted deviations in the review environments
+
+Each is one step done wrong or one condition gone wrong; the sizes are assumed.
+
+| deviation | what is changed | size |
+|---|---|---|
+| unmixed ladder, unmixed spike | the mix step is skipped | rig's own unmixed recovery |
+| starved ladder | ladder transfer volume | 7 uL instead of 25 uL |
+| tip carryover | one tip reused down each ladder | rig's own carryover |
+| edge effect | cell response on the outer ring | 50% lost instead of 15% |
+| reader drift | signal gradient from row A to row H | 35% instead of 4% |
+| weak cells | stimulated analyte level | 1.3 to 2.0 x basal |
+| evaporation | lid off, incubation wells on the outer ring | rig's own evaporation |
+| failed internal standard | internal-standard CV | 30% instead of 3% |
+| short aliquots | matrix volume per incubation well | 105 uL instead of 200 uL |
+
+Review labels use a tolerance of 0.5 log units for pEC50 and 0.3 log units (2-fold) for half-life.
+In time-course cases each compound gets its own MS response factor (log-scale sd 0.5) and each run
+its own internal-standard level (sd 0.3), so absolute peak area carries no information.
+
 ## Known simplifications
 
 - A well is either mixed or not; unmixed sampling applies the same recovery to every solute.
@@ -55,12 +75,17 @@ These are assumed too, and they set how large each mistake looks.
   no matrix lot effect. LC-MS is one lumped log-normal response factor per sample plus a noise floor.
 - The lead-optimization landscape is additive with one pairwise term, 625 analogs. Real SAR is rougher.
 - Costs are round numbers that only set the relative price of wells, tips, samples, and synthesis.
+- The four original environments share their first hidden draws on a given seed (the review
+  environments do not). Do not reuse a seed across environments where one's revealed truth could
+  inform another.
 
 ## What the rewards do and do not claim
 
 - Truth is known by construction, so every reward is exactly verifiable. That is the whole value of
   simulation here, and also its limit: a policy that scores well has learned this simulator.
 - "Expert" means a scripted policy that follows standard bench practice. It is a reference point,
-  not an upper bound, and it is not tuned.
+  not an upper bound. The experts of the four original environments are not tuned. The review
+  judges are: their thresholds and their list of serious causes were set on seeds 0 to 399, so
+  they are reported on other seeds.
 - The transfer experiment in results/learning.md is sim-to-sim: train on one simulated rig, test on
   a different simulated rig. It says nothing yet about a physical robot.

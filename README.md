@@ -99,8 +99,8 @@ test checks every reference policy's episodes for truth field names.
 ([results/knowledge.md](results/knowledge.md)). **All 24 rules are drafts seeded from general
 bench practice. None has been reviewed by an expert yet.**
 
-- The reward teaches 13 pairs outright (the expert wins on at least 90% of seeds).
-- It teaches 15 only on average.
+- The reward teaches 11 pairs outright (the expert wins on at least 90% of seeds).
+- It teaches 17 only on average.
 - It is blind to 5: no lid in `dose_response` and `assay_window`, choosing conditions by
   raw-ratio Z' in `assay_window`, and, inside `lead_opt`, skipping the standard curve or the
   internal standard upstream.
@@ -118,35 +118,40 @@ dose-response trap that breaks more than its own rule.
 
 Rules capture what an expert would do. The review environments capture what an expert
 would see. A run was executed from a fixed, sound protocol, possibly with one hidden
-execution fault (an unmixed ladder, a starved ladder, tip carryover, an edge effect, reader
-drift, weak cells; or for a time course an unmixed spike, evaporation, a failed internal
-standard, short aliquots). The reviewer gets the intended protocol, the raw data and the
-known value of one reference compound, and makes one call: accept or repeat, and why.
+deviation: a step done wrong (an unmixed ladder, a starved ladder, a reused tip, an unmixed
+spike, a lid left off, under-filled wells) or a condition gone wrong (weak cells, an edge
+effect, reader drift, an uneven internal standard). The reviewer gets the intended protocol,
+the raw data and the known value of one reference compound, and makes one call: accept or
+repeat, and why.
 
 Truth is known by construction. Repeat is right when the standard analysis of that data
-misses a true value by more than the tolerance or the run fails its own QC, so a fault that
-did no harm should be accepted. The cause is the fault that was planted.
+(spelled out in `spec()["label"]`) is off by more than the tolerance, loses a compound, or
+the run fails its QC gate. A deviation that leaves every answer within tolerance should be
+accepted. The cause is the deviation that was planted.
 
 A scripted reviewer that applies plain QC rules ([judges.py](src/drugdevgym/judges.py)) is the
-reference level. On 200 fresh seeds:
+reference level. On 200 fresh seeds, nominal rig:
 
-| environment | scripted QC rules | always accept | always repeat | verdict right | cause right |
+| environment | scripted QC rules | accept without looking | repeat without looking | verdict right | cause right |
 |---|---|---|---|---|---|
-| `plate_review` | 0.96 | 0.39 | 0.40 | 93.5% | 99.0% |
-| `timecourse_review` | 0.88 | 0.50 | 0.31 | 80.5% | 98.0% |
+| `plate_review` | 0.94 | 0.51 | 0.46 | 95.5% | 92.5% |
+| `timecourse_review` | 0.88 | 0.52 | 0.36 | 85.0% | 93.0% |
 
-The scripted rules almost always name the cause. They lose on the verdict: they repeat any
-run with a visible anomaly, and were right on 1 of the 47 runs where a fault was present but
-harmless. Knowing when an anomaly does not matter is the judgment left to teach.
+Where the scripted rules lose is the call that takes judgment. In 73 of the 400 runs a
+deviation was present but every answer stayed within tolerance; the rules got the verdict
+right on 45 of them (14 of 18 plates, 31 of 55 time courses). They also mostly cannot see a
+reused tip. Telling a deviation that matters from one that does not is what is left to teach.
 
 The same cases can be given to a person. `drugdev-gym cases` exports them with no truth
-inside; the expert judges each one blind and says why in their own words;
-`drugdev-gym score` replays those calls through the same environment a model would face.
-Their notes are the raw material for new rules, and any case they flag as unrealistic is a
-simulator to-do. **No human reference has been recorded yet.**
+inside (use `--truth` to freeze the answers in a separate file); the expert judges each one
+blind and says why in their own words; `drugdev-gym score` scores those calls next to the
+scripted rules. Their notes are the raw material for new rules, and any case they flag as
+unrealistic is a simulator to-do. **No human reference has been recorded yet.**
 
-Status: new, and under adversarial review. The scripted reviewer's thresholds were set on
-seeds 0 to 399 and reported on seeds 10000 to 10199.
+Status: red-teamed once, with the findings fixed. The scripted reviewer's thresholds were set
+on seeds 0 to 399 and are reported on seeds 10000 to 10199. The intended protocols are sound
+on the nominal and randomized rigs only: on the harsh rig a large share of clean runs fail on
+their own.
 
 ## Environment QC
 
@@ -158,8 +163,8 @@ seeds 0 to 399 and reported on seeds 10000 to 10199.
 | `stability` | 0.92 | no internal standard, no mixing after the spike, early-only time points, no lid on edge wells, single replicate (by the QC gate) | two time points, ignoring the limit of quantification, edge wells alone, no lid alone | none |
 | `assay_window` | 0.60 | none | max cells, min cells, kit default, edge wells | no lid, choosing by raw-ratio Z' |
 | `lead_opt` | 0.82 | one round only | no model, upstream no mixing, upstream two-point time course | upstream raw ratio, upstream no internal standard |
-| `plate_review` | 0.96 (scripted QC rules, seeds 10000+) | always repeat | always accept | none |
-| `timecourse_review` | 0.88 (scripted QC rules, seeds 10000+) | always repeat | always accept | none |
+| `plate_review` | 0.94 (scripted QC rules, seeds 10000+) | none | never questioning the data, repeating everything | none |
+| `timecourse_review` | 0.88 (scripted QC rules, seeds 10000+) | none | never questioning the data, repeating everything | none |
 
 What that says, plainly:
 
@@ -237,6 +242,9 @@ The method is supposed to catch its author too. So far:
   Controls off the top of the standard curve now fail.
 - Several traps changed two things at once, so their cards measured the wrong mistake. They
   are split, and a test now enforces one broken rule per dose-response trap.
+- A red team on the review environments found that one seed gave linked faults in both of
+  them, so one could give the other away, and that three planted faults were really a
+  mistake plus a worse rig. Faults are now drawn per environment and are one deviation each.
 - **Still open:** the `dose_response` QC gate trusts the plate the agent declares. An agent
   can answer from a plate with no controls, run a cheap token plate with controls, and
   declare that one. This `gate_bypass` policy scores 0.66 against 0.68 for the expert and is
@@ -248,11 +256,15 @@ The method is supposed to catch its author too. So far:
 - The expert policies are scripted references, not upper bounds.
 - One assay format (Gq-style, competitive TR-FRET), one stability format, one small additive
   SAR landscape. No PK, selectivity, solubility, or toxicity yet.
-- Rewards use a 0.5 log tolerance chosen by hand, not from real assay reproducibility.
+- Rewards use a 0.5 log tolerance (0.3 for time-course review) chosen by hand, not from real assay
+  reproducibility. Review labels are a hard cut at that tolerance, so some sit close to it.
 - Lids and edge wells barely matter in the one-hour assays as simulated; that is a gap in
   the simulator, not a finding about lids.
 - The package is open, so anyone holding a task id can recompute its hidden truth. A
-  held-out evaluation needs private seeds.
+  held-out evaluation needs private seeds from a wide range, and a blind human study needs
+  opaque case ids or answers frozen at export.
+- The half-life analysis drops points below the limit of quantification one injection at a
+  time, which reads slightly long when a time point straddles the limit.
 
 ## Roadmap
 

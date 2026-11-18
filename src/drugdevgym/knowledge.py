@@ -15,7 +15,7 @@ from pathlib import Path
 from .policies import POLICIES
 
 RULES_PATH = Path(__file__).with_name("rules.toml")
-NOT_KNOWLEDGE = {"expert", "random", "null", "gate_bypass"}  # reference points and exploits, not broken rules
+NOT_KNOWLEDGE = {"expert", "random", "null", "gate_bypass", "constant_repeat"}  # reference points and exploits, not broken rules
 TEACHES = {"clean": "yes", "visible": "yes", "weak": "on average", "blind": "no", "inverted": "no, it rewards the mistake"}
 
 # Does a dose-response design follow the rule? Used to ask what a learner rediscovered.
@@ -67,8 +67,12 @@ def coverage(rules: list[dict], cards: dict, learned: dict[str, dict] | None = N
     """
     rows = []
     for r in rules:
-        by_policy = {row["policy"]: row for row in cards[r["env"]]["rows"]}
+        by_policy = {row["policy"]: row for row in cards.get(r["env"], {}).get("rows", [])}
         for trap in r["traps"]:
+            if trap not in by_policy:  # no card yet for this environment or trap: say so, do not guess
+                rows.append({"env": r["env"], "id": r["id"], "said": r["said"], "status": r["status"], "trap": trap,
+                             "verdict": None, "teaches": "not measured", "win_rate": None, "gap": None, "learner": None})
+                continue
             q = by_policy[trap]
             row = {"env": r["env"], "id": r["id"], "said": r["said"], "status": r["status"], "trap": trap,
                    "verdict": q["verdict"], "teaches": TEACHES[q["verdict"]], "win_rate": q["win_rate"],
@@ -81,7 +85,8 @@ def coverage(rules: list[dict], cards: dict, learned: dict[str, dict] | None = N
 
 def summary(rows: list[dict]) -> dict:
     counts = {k: sum(r["teaches"] == v for r in rows) for k, v in
-              (("yes", "yes"), ("on average", "on average"), ("no", "no"), ("inverted", TEACHES["inverted"]))}
+              (("yes", "yes"), ("on average", "on average"), ("no", "no"), ("inverted", TEACHES["inverted"]),
+               ("not_measured", "not measured"))}
     checked = [r for r in rows if r["learner"]]
     labels = sorted({k for r in checked for k in r["learner"]})
     found = {label: sum(r["learner"][label] for r in checked) for label in labels}
@@ -102,6 +107,9 @@ def markdown(rows: list[dict]) -> str:
              "| env | rule | status | trap | reward teaches it | expert wins | reward gap |",
              "|---|---|---|---|---|---|---|"]
     for r in rows:
+        if r["win_rate"] is None:
+            lines.append(f"| {r['env']} | {r['said']} | {r['status']} | {r['trap']} | not measured | n/a | n/a |")
+            continue
         lines.append(f"| {r['env']} | {r['said']} | {r['status']} | {r['trap']} | {r['teaches']} | "
                      f"{100 * r['win_rate']:.1f}% | {r['gap']:.3f} |")
     checked = [r for r in rows if r["learner"]]

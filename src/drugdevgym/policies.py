@@ -14,7 +14,7 @@ from .analysis import (analyte_zprime, control_zprime, estimate_half_life, estim
                        zprime)
 from .envs.lead_opt import OPTIONS, POSITIONS, analog_id, desirability, parse_id
 from .envs.review import PLATE_FAULTS, TIMECOURSE_FAULTS
-from .judges import FixedJudge, PlateJudge, RandomJudge, TimecourseJudge
+from .judges import FixedJudge, ForcedVerdict, PlateJudge, RandomJudge, TimecourseJudge
 
 # ---------------------------------------------------------------- dose response
 
@@ -319,15 +319,19 @@ LEAD_OPT = {
 
 PLATE_REVIEW = {
     "expert": lambda seed: PlateJudge(),  # scripted QC rules; a human expert's calls are scored separately
-    "always_accept": lambda seed: FixedJudge("accept", "none"),
-    "always_repeat": lambda seed: FixedJudge("repeat", PLATE_FAULTS[1]),
+    "always_accept": lambda seed: ForcedVerdict(PlateJudge(), "accept"),
+    "always_repeat": lambda seed: ForcedVerdict(PlateJudge(), "repeat"),
     "random": lambda seed: RandomJudge(seed, PLATE_FAULTS),
+    "null": lambda seed: FixedJudge("accept", "none"),
+    "constant_repeat": lambda seed: FixedJudge("repeat", "none"),
 }
 TIMECOURSE_REVIEW = {
     "expert": lambda seed: TimecourseJudge(),
-    "always_accept": lambda seed: FixedJudge("accept", "none"),
-    "always_repeat": lambda seed: FixedJudge("repeat", TIMECOURSE_FAULTS[1]),
+    "always_accept": lambda seed: ForcedVerdict(TimecourseJudge(), "accept"),
+    "always_repeat": lambda seed: ForcedVerdict(TimecourseJudge(), "repeat"),
     "random": lambda seed: RandomJudge(seed, TIMECOURSE_FAULTS),
+    "null": lambda seed: FixedJudge("accept", "none"),
+    "constant_repeat": lambda seed: FixedJudge("repeat", "none"),
 }
 
 POLICIES = {"dose_response": DOSE_RESPONSE, "stability": STABILITY, "assay_window": ASSAY_WINDOW,

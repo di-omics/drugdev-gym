@@ -6,6 +6,8 @@ The hidden truth never appears in an observation; it is returned in `info` only 
 """
 from __future__ import annotations
 
+import zlib
+
 import numpy as np
 
 from ..rig import RigProfile
@@ -29,7 +31,7 @@ def validate(spec: dict, design) -> tuple[dict | None, str | None]:
     """Check a design against a spec of field -> (kind, lo, hi, help). Returns (clean, error)."""
     if not isinstance(design, dict):
         return None, "design must be an object"
-    extra = sorted(set(design) - set(spec))
+    extra = sorted(str(k) for k in set(design) - set(spec))
     if extra:
         return None, f"unknown field: {extra[0]}"
     clean: dict = {}
@@ -77,13 +79,17 @@ class Env:
     name = "env"
     cost_reference = 100.0
     MAX_INVALID = 5
+    # True: the hidden truth also depends on the environment's name, so two environments never share
+    # hidden draws on the same seed. The four original environments keep False so their results stand.
+    salted = False
 
     def __init__(self, seed: int = 0, rig="nominal"):
         self.seed = int(seed)
         if self.seed < 0:
             raise ValueError("seed must be a non-negative integer")
         self.rig_mode = rig if isinstance(rig, str) else rig.name
-        self._truth_rng = np.random.default_rng([self.seed, 1])
+        stream = [self.seed, 1] + ([zlib.crc32(self.name.encode())] if self.salted else [])
+        self._truth_rng = np.random.default_rng(stream)
         self.profile = resolve_rig(rig, np.random.default_rng([self.seed, 2]))
         self._noise = np.random.default_rng([self.seed, 3])
         self.cost = 0.0
@@ -108,8 +114,8 @@ class Env:
     def _check_open(self, action) -> str | None:
         if self.done:
             raise RuntimeError("episode is over; make a new environment")
-        if not isinstance(action, dict) or "type" not in action:
-            return "action must be an object with a 'type'"
+        if not isinstance(action, dict) or not isinstance(action.get("type"), str):
+            return "action must be an object with a text 'type'"
         return None
 
     def _cost_penalty(self) -> float:

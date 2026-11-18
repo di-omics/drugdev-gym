@@ -6,6 +6,8 @@ half-lives on a log scale, halved when the run fails its own QC (time-zero repli
 """
 from __future__ import annotations
 
+import copy
+
 import numpy as np
 
 from ..analysis import response
@@ -44,8 +46,11 @@ def check_design(design, n_compounds: int) -> tuple[dict | None, str | None]:
 
 
 def simulate_stability(profile: RigProfile, rng: np.random.Generator, half_lives: dict[str, float],
-                       design: dict, is_sd: float = IS_SD) -> tuple[list[dict], Rig]:
-    """Run one validated design. half_lives maps compound id to true half-life in minutes."""
+                       design: dict, is_sd: float = IS_SD, matrix_ul: float = MATRIX_UL) -> tuple[list[dict], Rig]:
+    """Run one validated design. half_lives maps compound id to true half-life in minutes.
+
+    is_sd and matrix_ul let a caller model a failed internal-standard dispense or under-filled
+    incubation wells; the defaults are the intended run."""
     rig = Rig(profile, rng)
     stock, inc, quench = Plate("stock"), Plate("incubation"), Plate("quench")
     inc_free = iter(usable_wells(design["avoid_edges"]))
@@ -53,10 +58,10 @@ def simulate_stability(profile: RigProfile, rng: np.random.Generator, half_lives
     nominal_t0 = 1000.0 * ALIQUOT_UL  # 1 uM in the matrix, as amount in one aliquot
     wells: list[tuple[str, int, tuple]] = []
     for k, cid in enumerate(half_lives):
-        rig.fill(stock, (k, 0), 300.0, {cid: 1000.0 * (MATRIX_UL + SPIKE_UL) / SPIKE_UL}, what=f"{cid} stock")
+        rig.fill(stock, (k, 0), 100.0, {cid: 1000.0 * (MATRIX_UL + SPIKE_UL) / SPIKE_UL}, what=f"{cid} stock")
         for rep in range(design["replicates"]):
             w = next(inc_free)
-            rig.fill(inc, w, MATRIX_UL, what="matrix")
+            rig.fill(inc, w, matrix_ul, what="matrix")
             rig.transfer(stock, (k, 0), inc, w, SPIKE_UL, new_tip=True, mix_after=design["mix_after_spike"])
             wells.append((cid, rep + 1, w))
     samples: list[dict] = []
@@ -144,7 +149,7 @@ class Stability(Env):
             self.samples, rig = simulate_stability(self.profile, self._noise, self.half_lives, design)
             self._record(rig.log)
             self.cost += run_cost(len(self.samples), rig.tips)
-            return {"phase": "data", "samples": self.samples, "cost": round(self.cost, 2)}, 0.0, False, {}
+            return {"phase": "data", "samples": copy.deepcopy(self.samples), "cost": round(self.cost, 2)}, 0.0, False, {}
         if action["type"] == "report":
             answers = action.get("half_life_min")
             answers = answers if isinstance(answers, dict) else {}

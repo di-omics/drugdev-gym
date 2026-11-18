@@ -58,3 +58,11 @@ def test_coverage_joins_rules_to_the_committed_qc_results():
     assert s["rediscovered"] == {"a": 8, "b": 7} and s["missed"] == ["mix-every-ladder-step"]
     text = knowledge.markdown(rows)
     assert "| dose_response | Mix after every transfer" in text and "Rediscovered: a 8 of 8, b 7 of 8." in text
+
+
+def test_a_rule_without_a_card_is_reported_as_not_measured():
+    rules = knowledge.load_rules()
+    rows = knowledge.coverage(rules, {})
+    assert rows and all(r["teaches"] == "not measured" for r in rows)
+    assert knowledge.summary(rows)["not_measured"] == len(rows)
+    assert "not measured" in knowledge.markdown(rows)
