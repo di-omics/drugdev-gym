@@ -269,3 +269,67 @@ said = "Fit against what the enzyme could still do, not against the clock."
 why = "Pancreatin loses half its activity over a four-hour incubation, so slow peptides read about a quarter too long against the clock."
 traps = ["ignore_enzyme_decay"]
 status = "draft"
+
+[[rule]]
+id = "forskolin-at-its-ec80"
+env = "gi_camp_potency"
+said = "Run the agonist plate with forskolin near its EC80, not at a saturating dose."
+why = "Saturating forskolin swamps the Gi signal: it overrides part of the inhibition."
+traps = ["forskolin_too_high"]
+status = "draft"
+
+[[rule]]
+id = "titrate-forskolin-on-your-cells"
+env = "gi_camp_potency"
+said = "Titrate forskolin on your own cells before the agonist plate; do not run it on handbook conditions."
+why = "Forskolin potency and cAMP output differ from one cell line to the next, so the forskolin level and the cell number have to be read from these cells."
+traps = ["skip_titration"]
+status = "draft"
+
+[[rule]]
+id = "gi-needs-forskolin"
+env = "gi_camp_potency"
+said = "A Gi agonist plate needs forskolin in every cell well."
+why = "A Gi receptor can only lower cAMP that something has raised, so unstimulated cells give no window."
+traps = ["no_forskolin"]
+status = "draft"
+
+[[rule]]
+id = "block-the-phosphodiesterases"
+env = "gi_camp_potency"
+said = "Put IBMX in the stimulation buffer."
+why = "Without a PDE inhibitor the cells break cAMP down as fast as they make it, so the signal sits at a low steady state near the bottom of the standard curve."
+traps = ["no_ibmx"]
+status = "draft"
+
+[[rule]]
+id = "camp-through-the-standard-curve"
+env = "gi_camp_potency"
+said = "Convert the ratio to cAMP through the standard curve before fitting potency."
+why = "The competitive readout is not proportional to cAMP, so a raw-ratio fit puts the midpoint in the wrong place."
+traps = ["raw_ratio"]
+status = "draft"
+
+[[rule]]
+id = "pin-the-forskolin-plateau"
+env = "gi_camp_potency"
+said = "Pin the top of every inhibition curve on the forskolin-only controls."
+why = "The uninhibited plateau is the high, noisy end of a Gi curve and a potent agonist may never reach it on the ladder, so a free plateau lets the midpoint drift."
+traps = ["free_plateau"]
+status = "draft"
+
+[[rule]]
+id = "titrate-cells-onto-the-curve"
+env = "gi_camp_potency"
+said = "Titrate the cell number so the forskolin control lands inside the standard curve; more cells is not more signal."
+why = "Too many cells make more cAMP than the kit can resolve, so the forskolin control runs onto the flat top of the standard curve."
+traps = ["too_many_cells"]
+status = "draft"
+
+[[rule]]
+id = "mix-the-agonist-ladder"
+env = "gi_camp_potency"
+said = "Mix after every transfer in the agonist dilution."
+why = "An unmixed well is sampled unevenly, and the error compounds down the ladder."
+traps = ["no_mix"]
+status = "draft"

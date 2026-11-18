@@ -37,6 +37,22 @@ These are assumed too, and they set how large each mistake looks.
 | MS response variability | 18% log-scale | lumped sample-to-sample variability without an internal standard (matrix effect, recovery, drift), not injection repeatability alone | repeat injections and repeat extractions |
 | internal-standard noise | 3% | residual after normalisation | same |
 | detector noise floor | 0.4% of the time-zero area | sets the limit of quantification; the analysis default drops points under 2% | blank injections |
+| cAMP kit half-displacement (gi_camp_potency) | 2.5 to 7.5 nM per seed | cAMP in the read well at half signal; the ratio window is the 600 to 6000 above, identical on every seed, so it can be memorized (see Known simplifications) | the kit cAMP standard curve |
+| cAMP standard series | 0.04 to 712 nM, 8 points, 4-fold | on-plate cAMP standard curve, as final concentration in the read well | kit insert |
+| Gi well volumes | 30 uL stimulation buffer over the plated cells, 10 uL agonist, 10 uL forskolin, 50 uL detection mix; 300 uL ladder wells | one 96-well stimulation and its lysis and detection step; the cells are plated the day before at the chosen number per well, and one 30 uL fill stands for the plating and the buffer exchange | the protocol in use |
+| forskolin EC50 | 0.5 to 10 uM, log-uniform | hidden potency of forskolin on the cell line | forskolin titration read through the standard curve |
+| forskolin slope | 1 | Hill slope of the forskolin response | the same titration |
+| forskolin titration series | 100 uM top, half-log, 8 points, 40 uL ladder transfers | the fixed series of a titration plate, and the most forskolin a design can ask for | solubility and vehicle tolerance of the cells |
+| cAMP output | 0.5 to 8 fmol per 1000 cells per min, log-uniform | hidden synthesis rate at saturating forskolin (15 to 240 pmol per million cells in 30 min) | cell titration at saturating forskolin with IBMX |
+| unstimulated cyclase | 1 to 5% of the forskolin maximum | hidden cAMP synthesis with no forskolin; not inhibited by the agonist | wells without forskolin |
+| PDE activity | 0.1 to 0.5 per min | hidden first-order cAMP breakdown with no inhibitor (half-life 1.4 to 7 min); sets how far the signal collapses without IBMX | cAMP time course with and without IBMX |
+| IBMX | 500 uM in the stimulation, Ki 20 uM | one lumped competitive PDE inhibitor; leaves 1 / 26 of the PDE activity | IBMX titration on the cell line |
+| full-agonist inhibition | 0.7 to 0.95 | hidden fraction of the forskolin response the reference agonist removes; sets the control window | forskolin controls with and without reference agonist, back-calculated |
+| agonist efficacy | 0.6 to 1.0 of the reference | hidden; Emax of a test agonist is this times the full-agonist inhibition | not measurable in advance |
+| Gi agonist pEC50, Hill, stickiness, cell CV | 5.5 to 9.5, 0.8 to 1.3, log-normal median 2, 4 to 8% | same ranges as dose_response | as in dose_response |
+| Gi QC gate | Z' >= 0.5 on the raw ratio, 3 or more controls a side, every potency plate | when the reward is halved; a reported pEC50 must lie in 0 to 14 | the acceptance rule of the real screen |
+| Gi expert operating point | forskolin control at 3 x the kit midpoint; titration at 10k cells; 10 uM forskolin if the titration cannot be fitted | where the scripted expert puts the assay: a policy choice made before the first card, not physics. The expert's curve fit is a change made after the first card: the first expert fitted free plateaus and scored 0.57 on 40 seeds; pinning the top plateau on the forskolin-only controls was added after seeing that number and moves the expert from about 0.56 to 0.63. The earlier analysis stays on the card as free_plateau | compare operating points on real plates |
+| Gi skip_titration conditions | 10 uM forskolin, 30k cells | the handbook conditions of the trap that runs no titration plate. Added after the first card because the review asked for the trap; the two values are the ones the review named and were not adjusted. The verdict depends on the cell number: at 30k the trap loses 0.04 and is blind, at 10k (the expert's own fallback) it loses 0.19 and is weak | a cell titration on the real line |
 | reward tolerance | 0.5 log units | error at which credit reaches zero | minimum significant ratio of the real assay |
 | GI fluid pH (gi_fluid_stability) | SGF 1.2, SIF 6.8 | USP simulated gastric and intestinal fluid; the SGF value is also the reference pH for acid hydrolysis | pH meter on the prepared fluid |
 | GI enzymatic half-life | SGF 1 to 3000 min, SIF 0.5 to 1000 min, log-uniform | hidden truth: digestion half-life at specification pepsin or pancreatin activity | set from public peptide SGF and SIF stability data |
@@ -101,10 +117,46 @@ its own internal-standard level (sd 0.3), so absolute peak area carries no infor
   long. Left at 25 C overnight, the control substrate is digested away before injection, the run fails its gate, and the
   activity scaling then pulls half-lives over an hour about 0.27 log units too short (without that scaling they read
   0.02 too long). No rule states a direction, and none should until an expert has confirmed one.
+
+- In gi_camp_potency the Gi pathway is noncompetitive with forskolin: the agonist removes the same fraction of
+  the forskolin response at any forskolin concentration. In real cells saturating forskolin overrides part of
+  the inhibition and shifts the apparent potency. That surmountable term is missing, so saturating forskolin is
+  not punished here. The reward slightly prefers it: forskolin_too_high scores 0.003 above the expert on 4000
+  seeds (7 standard errors) and the expert wins 44% of pairs. Most of that comes from the one seed in six where
+  the expert's cells are already at the 80k limit and more forskolin is the only signal left (0.009 there, 0.002
+  elsewhere). The card reads the trap as blind on most 200-seed windows and as inverted on about one in twenty
+  (1 of 20 here, 1 of 27 in review). A surmountable term tried in memory (inhibition scaled by
+  1 - 0.3 x drive^4) made the trap visible but took the expert to 0.51, so it needs its own constants and its
+  own card and is not in the simulator.
+- Skipping the forskolin titration is nearly free for the same reason. With the forskolin level harmless, the
+  titration only earns the cell number, and 30k cells is a fair guess for most cell lines in these ranges, so
+  skip_titration loses 0.04 (the expert wins 55% of pairs) and the card shows it as blind (weak on 2 of 20
+  windows of 200 seeds).
+- The kit ratio window is the same on every seed, as in dose_response, so a policy can convert ratio to cAMP
+  with a memorized window instead of on-plate standards. One plate at 100 uM forskolin and 30k cells with no
+  titration and no standards scores 0.60 against the expert's 0.63, at lower cost. Drawing the window per seed
+  within 25% of nominal was tried in memory and cost that policy only 0.01, so the constant window was kept.
+  What the card measures under the standard-curve rule is fitting the raw ratio, not skipping the standards.
+- gi_camp_potency cells are plated the day before, so the rig's edge_cell_loss applies to its outer ring. That
+  term is why a design that spills onto the outer ring scores below one that stays on the inner 60: 9 points
+  in duplicate on 92 wells reach accuracy 0.60 against 0.71 for the expert's singles, and 0.74 with the term
+  switched off.
+- cAMP there is constant synthesis against first-order breakdown: no feedback activation of PDEs, no
+  desensitisation, no export. Without IBMX the signal is a low steady state, not a peak that then falls, so it
+  is small but not time dependent. no_ibmx is only weak on the card because the same policy answers the low
+  signal with more cells: with the expert's cell number held it scores 0.24 against 0.64 and the expert wins
+  96% of pairs.
+- cAMP scales linearly with cell number, forskolin and agonist act at once, the reference agonist is always
+  saturating, and IBMX-insensitive PDEs are ignored.
+- gi_camp_potency plates always use fresh tips and a lid and fill the inner 60 wells first; those choices are
+  taught in dose_response.
 - Costs are round numbers that only set the relative price of wells, tips, samples, and synthesis.
 - The four original environments share their first hidden draws on a given seed (the review
   environments do not). Do not reuse a seed across environments where one's revealed truth could
   inform another.
+- gi_camp_potency is salted like the review environments. Its first card was measured before the salt was
+  added, on other hidden draws from the same ranges, so every number quoted for it here was measured again
+  afterwards.
 
 ## What the rewards do and do not claim
 
@@ -114,6 +166,10 @@ its own internal-standard level (sd 0.3), so absolute peak area carries no infor
   not an upper bound. The experts of the four original environments are not tuned. The review
   judges are: their thresholds and their list of serious causes were set on seeds 0 to 399, so
   they are reported on other seeds.
+- The gi_camp_potency expert's protocol was fixed before its first card, but its curve fit was not: the
+  pinned top plateau was chosen after the first measurement (see the Gi expert operating point row). That
+  choice was made on low seeds; on seeds 40000 to 40199 the expert scores 0.65 against 0.63 on seeds 0 to 199,
+  and every trap gets the same verdict.
 - The transfer experiment in results/learning.md is sim-to-sim: train on one simulated rig, test on
   a different simulated rig. It says nothing yet about a physical robot.
 - The gi_fluid_stability expert is a reference, not this reward's optimum. Its eight time points are over-sampled

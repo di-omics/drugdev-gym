@@ -1,7 +1,7 @@
 # Expert rules: what the rewards can teach
 
-31 rules, 41 rule-trap pairs. The reward teaches 16 of them (the expert wins on at least 90% of seeds), 20 only on average, is blind to 5, and rewards the mistake in 0.
-31 of the 31 rules are drafts seeded from general bench practice and have not been reviewed by the expert yet.
+39 rules, 49 rule-trap pairs. The reward teaches 19 of them (the expert wins on at least 90% of seeds), 23 only on average, is blind to 7, and rewards the mistake in 0.
+39 of the 39 rules are drafts seeded from general bench practice and have not been reviewed by the expert yet.
 
 | env | rule | status | trap | reward teaches it | expert wins | reward gap |
 |---|---|---|---|---|---|---|
@@ -46,6 +46,14 @@
 | gi_fluid_stability | Make time zero by quenching the fluid before the compound meets the enzyme. | draft | no_true_time_zero | on average | 78.5% | 0.022 |
 | gi_fluid_stability | Quench into internal standard and read the peptide over it. | draft | no_internal_standard | yes | 99.5% | 0.481 |
 | gi_fluid_stability | Fit against what the enzyme could still do, not against the clock. | draft | ignore_enzyme_decay | yes | 93.5% | 0.040 |
+| gi_camp_potency | Run the agonist plate with forskolin near its EC80, not at a saturating dose. | draft | forskolin_too_high | no | 43.8% | -0.003 |
+| gi_camp_potency | Titrate forskolin on your own cells before the agonist plate; do not run it on handbook conditions. | draft | skip_titration | no | 53.5% | 0.027 |
+| gi_camp_potency | A Gi agonist plate needs forskolin in every cell well. | draft | no_forskolin | yes | 99.8% | 0.685 |
+| gi_camp_potency | Put IBMX in the stimulation buffer. | draft | no_ibmx | on average | 78.8% | 0.166 |
+| gi_camp_potency | Convert the ratio to cAMP through the standard curve before fitting potency. | draft | raw_ratio | yes | 97.5% | 0.366 |
+| gi_camp_potency | Pin the top of every inhibition curve on the forskolin-only controls. | draft | free_plateau | on average | 69.5% | 0.068 |
+| gi_camp_potency | Titrate the cell number so the forskolin control lands inside the standard curve; more cells is not more signal. | draft | too_many_cells | on average | 70.0% | 0.132 |
+| gi_camp_potency | Mix after every transfer in the agonist dilution. | draft | no_mix | yes | 99.5% | 0.587 |
 
 ## What a learner rediscovered from reward alone
 

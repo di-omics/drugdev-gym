@@ -422,6 +422,131 @@ POLICIES = {"dose_response": DOSE_RESPONSE, "stability": STABILITY, "assay_windo
             "lead_opt": LEAD_OPT, "plate_review": PLATE_REVIEW, "timecourse_review": TIMECOURSE_REVIEW,
             "gi_fluid_stability": GI_FLUID_STABILITY}
 
+# ---------------------------------------------------------------- Gi cAMP potency
+
+from .analysis import ec_fraction, estimate_pec50_anchored, titration_curve, titration_level  # noqa: E402
+from .envs.gi_camp_potency import DESIGN_SPEC as GI_SPEC  # noqa: E402
+from .envs.gi_camp_potency import FSK_MAX_UM, LADDER_MAX_UL, STD_SERIES_NM  # noqa: E402
+
+# The expert plan. forskolin_uM and cells_k are either a number or a rule applied to the titration:
+# "EC80" = the fitted forskolin EC80; "titrate" = the cell number that puts the forskolin control
+# at GI_TARGET_FOLD times the standard-curve midpoint.
+CAMP_EXPERT = {"forskolin_uM": "EC80", "cells_k": "titrate", "ibmx": True, "stim_min": 30.0,
+             "top_conc_nM": 30000.0, "dilution_factor": 4.0, "n_points": 10, "replicates": 1,
+             "transfer_ul": 15.0, "mix": True, "standards": True, "controls_per_side": 6}
+GI_PILOT_CELLS_K = 10.0  # cell number of the forskolin titration
+GI_PILOT_REPLICATES = 2
+GI_TARGET_FOLD = 3.0  # forskolin control at 3x the kit midpoint, so the inhibited wells fall through the middle
+GI_DEFAULT_FORSKOLIN_UM = 10.0  # used when the titration gives no curve to read an EC80 from
+GI_HANDBOOK_CELLS_K = 30.0  # cell number of the skip_titration trap: a handbook figure, not read from these cells
+GI_CELL_RANGE = GI_SPEC["cells_k"][1:3]  # the cell numbers a design may ask for
+
+GI_CHOICES = {
+    "forskolin_uM": ["EC80", 0.0, 1.0, 10.0, 100.0],
+    "cells_k": ["titrate", 2.0, 10.0, 40.0, 80.0],
+    "ibmx": [False, True],
+    "stim_min": [10.0, 30.0, 60.0, 120.0],
+    "top_conc_nM": [100.0, 1000.0, 10000.0, 30000.0, 100000.0],
+    "dilution_factor": [2.0, 3.16, 4.0, 10.0],
+    "n_points": [6, 8, 10, 12],
+    "replicates": [1, 2],
+    "transfer_ul": [5.0, 10.0, 15.0, 25.0, 50.0],
+    "mix": [False, True],
+    "standards": [False, True],
+    "controls_per_side": [0, 2, 4, 6, 8],
+}
+
+
+def gi_conditions(plan: dict, wells: list[dict], pilot_cells_k: float = GI_PILOT_CELLS_K) -> tuple[float, float]:
+    """Forskolin (uM) and cells (thousand per well) for the potency plate, from a plan and a titration plate."""
+    curve = titration_curve(wells)
+    forskolin = plan["forskolin_uM"]
+    if forskolin == "EC80":
+        forskolin = GI_DEFAULT_FORSKOLIN_UM
+        if curve is not None and curve["fitted"]:
+            forskolin = float(np.clip(ec_fraction(curve["ec50_uM"], curve["hill"], 0.8), 0.0, FSK_MAX_UM))
+    cells = plan["cells_k"]
+    if cells == "titrate":
+        cells = pilot_cells_k
+        level = titration_level(curve, forskolin) if curve is not None else None
+        if level is not None and level > 0:  # cAMP scales with the cell number
+            cells = float(np.clip(pilot_cells_k * GI_TARGET_FOLD * curve["kit_mid_nM"] / level, *GI_CELL_RANGE))
+    return float(forskolin), float(cells)
+
+
+class GiCampPolicy:
+    """Titrate forskolin, set forskolin and cells from it, run one potency plate, fit and report.
+
+    plan is CAMP_EXPERT with any changes. Two analysis choices: use_standards (cAMP through the
+    standard curve, or the raw ratio) and anchor (pin the uninhibited plateau of every curve on
+    the forskolin-only controls, or leave it free). A plan with fixed forskolin and fixed cells
+    skips the titration. The anchor was added to the expert after its first card; the free fit it
+    replaced is the free_plateau policy (see docs/ASSUMPTIONS.md).
+    """
+
+    def __init__(self, plan: dict | None, use_standards: bool = True, anchor: bool = True):
+        self.plan = plan
+        self.use_standards = use_standards
+        self.anchor = anchor
+
+    def _plate(self, forskolin: float, cells: float) -> dict:
+        return {"type": "run_plate", "design": {**self.plan, "forskolin_uM": forskolin, "cells_k": cells}}
+
+    def act(self, obs: dict) -> dict:
+        if obs.get("phase") == "start":
+            if self.plan is None:
+                return {"type": "report", "pEC50": {c: 7.5 for c in obs["compounds"]}}
+            if self.plan["forskolin_uM"] == "EC80" or self.plan["cells_k"] == "titrate":
+                return {"type": "run_titration", "design": {
+                    "cells_k": GI_PILOT_CELLS_K, "stim_min": self.plan["stim_min"], "ibmx": self.plan["ibmx"],
+                    "replicates": GI_PILOT_REPLICATES}}
+            return self._plate(self.plan["forskolin_uM"], self.plan["cells_k"])
+        if obs.get("phase") == "data" and obs["kind"] == "titration":
+            return self._plate(*gi_conditions(self.plan, obs["wells"]))
+        if obs.get("phase") == "data":
+            fit = estimate_pec50_anchored if self.anchor else estimate_pec50
+            return {"type": "report", "pEC50": fit(obs["wells"], self.use_standards)}
+        return {"type": "report", "pEC50": {}}
+
+
+def random_gi_plan(rng: np.random.Generator, n_compounds: int = 4) -> dict:
+    """A random plan that always fits the labware: transfer volume, replicates and controls give way."""
+    plan = {k: v[int(rng.integers(len(v)))] for k, v in GI_CHOICES.items()}
+    plan["transfer_ul"] = max(t for t in GI_CHOICES["transfer_ul"]
+                              if t <= plan["transfer_ul"] and t * plan["dilution_factor"] <= LADDER_MAX_UL)
+    room = 96 - (len(STD_SERIES_NM) if plan["standards"] else 0)  # wells left on the plate
+    if n_compounds * plan["n_points"] * plan["replicates"] > room:
+        plan["replicates"] = 1
+    left = room - n_compounds * plan["n_points"] * plan["replicates"]
+    plan["controls_per_side"] = int(min(plan["controls_per_side"], left // 2))
+    return plan
+
+
+def _camp(**changes):
+    return lambda seed: GiCampPolicy({**CAMP_EXPERT, **changes})
+
+
+def _random_camp(seed: int) -> GiCampPolicy:
+    rng = np.random.default_rng([seed, 99])
+    return GiCampPolicy(random_gi_plan(rng), use_standards=bool(rng.integers(2)), anchor=bool(rng.integers(2)))
+
+
+GI_CAMP_POTENCY = {
+    "expert": _camp(),
+    "forskolin_too_high": _camp(forskolin_uM=FSK_MAX_UM),
+    # one mistake, no titration plate: both settings the titration would give are handbook numbers instead
+    "skip_titration": _camp(forskolin_uM=GI_DEFAULT_FORSKOLIN_UM, cells_k=GI_HANDBOOK_CELLS_K),
+    "no_forskolin": _camp(forskolin_uM=0.0),
+    "no_ibmx": _camp(ibmx=False),
+    "raw_ratio": lambda seed: GiCampPolicy(dict(CAMP_EXPERT), use_standards=False),
+    "free_plateau": lambda seed: GiCampPolicy(dict(CAMP_EXPERT), anchor=False),
+    "too_many_cells": _camp(cells_k=GI_CELL_RANGE[1]),
+    "no_mix": _camp(mix=False),
+    "random": _random_camp,
+    "null": lambda seed: GiCampPolicy(None),
+}
+POLICIES["gi_camp_potency"] = GI_CAMP_POTENCY
+
 
 def run_episode(env, policy) -> tuple[float, dict]:
     """Drive one environment to the end with one policy. Returns (total reward, final info)."""

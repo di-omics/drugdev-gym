@@ -58,3 +58,19 @@ def enzyme_exposure(t0: float, t1: float, activity_half_life_min: float | None =
         return float(t1 - t0)
     lam = np.log(2.0) / activity_half_life_min
     return float((np.exp(-lam * t0) - np.exp(-lam * t1)) / lam)
+
+
+def accumulated(loss_per_min: float, minutes: float) -> float:
+    """Zero-order production against first-order loss: the minutes of production still present.
+
+    Solves dC/dt = 1 - k C from C(0) = 0. With no loss this is the elapsed time; with fast
+    loss it plateaus at the steady state 1 / k.
+    """
+    if loss_per_min <= 0:
+        return float(minutes)
+    return float(-np.expm1(-loss_per_min * minutes) / loss_per_min)
+
+
+def uninhibited_fraction(inhibitor: float, ki: float) -> float:
+    """Enzyme activity left under a competitive inhibitor with the substrate far below its Km: 1 / (1 + [I] / Ki)."""
+    return float(1.0 / (1.0 + max(float(inhibitor), 0.0) / ki))

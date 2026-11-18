@@ -223,3 +223,111 @@ def enzyme_activity(samples: list[dict], control_id: str, reference_half_life_mi
     control = [s for s in samples if s["id"] == control_id]
     fit = estimate_fluid_half_life(control, activity_half_life_min, None, use_lloq, lloq_frac, lo=0.0, hi=float("inf"))
     return {fluid: float(reference_half_life_min / hl) for fluid, hl in fit.get(control_id, {}).items() if hl > 0}
+
+
+def standard_curve(wells: list[dict]) -> dict | None:
+    """4PL through the on-plate standards (role "std") of one plate observation; None with fewer than 4."""
+    std = [(w["std_nM"], w["ratio"]) for w in wells if w["role"] == "std"]
+    if len(std) < 4:
+        return None
+    return fit_4pl(np.log10([s for s, _ in std]), [r for _, r in std])
+
+
+def ec_fraction(ec50: float, hill: float = 1.0, fraction: float = 0.8) -> float:
+    """Concentration that gives `fraction` of the maximal effect on a Hill curve (EC80 = EC50 * 4 ** (1 / hill)).
+
+    Raises ValueError unless 0 < fraction < 1 and hill > 0: the curve never reaches 0 or 1, and a
+    flat curve has no such concentration.
+    """
+    if not 0.0 < fraction < 1.0:
+        raise ValueError("fraction must lie strictly between 0 and 1")
+    if not hill > 0.0:
+        raise ValueError("hill must be positive")
+    return float(ec50 * (fraction / (1.0 - fraction)) ** (1.0 / hill))
+
+
+def titration_curve(wells: list[dict]) -> dict | None:
+    """Stimulant dose-response in analyte units from one titration plate observation.
+
+    Wells with role "fsk" carry forskolin_uM and a ratio. Ratios are converted to analyte
+    through the on-plate standard curve, then analyte against log10 concentration is fitted
+    with a rising 4PL. Returns None without a standard curve. Otherwise returns kit_mid_nM
+    (the midpoint of the standard curve), top_wells_nM (mean analyte at the highest
+    concentration tested), unstim_nM (mean analyte of the role "unstim" wells, or None) and
+    fitted (whether a rising curve could be placed). When fitted, ec50_uM, hill, bottom_nM
+    and top_nM describe it; they are None when the data are flat, fall instead of rise, or
+    put the midpoint on the edge of the search range.
+    """
+    curve = standard_curve(wells)
+    if curve is None:
+        return None
+    pts = [(w["forskolin_uM"], w["ratio"]) for w in wells if w["role"] == "fsk" and w["forskolin_uM"] > 0]
+    unstim = [w["ratio"] for w in wells if w["role"] == "unstim"]
+    out = {"kit_mid_nM": float(10.0 ** curve["logec50"]), "top_wells_nM": None,
+           "unstim_nM": float(np.mean(invert_4pl(curve, unstim))) if unstim else None,
+           "fitted": False, "ec50_uM": None, "hill": None, "bottom_nM": None, "top_nM": None}
+    if not pts:
+        return out
+    conc = np.array([p[0] for p in pts], float)
+    analyte = invert_4pl(curve, [p[1] for p in pts])
+    out["top_wells_nM"] = float(analyte[conc == conc.max()].mean())
+    fit = fit_4pl(np.log10(conc), analyte)
+    if fit is None or fit["r2"] < MIN_R2 or fit["at_edge"] or fit["top"] <= fit["bottom"]:
+        return out
+    out.update(fitted=True, ec50_uM=float(10.0 ** fit["logec50"]), hill=fit["hill"], bottom_nM=fit["bottom"],
+               top_nM=fit["top"])
+    return out
+
+
+def titration_level(curve: dict, forskolin_uM: float) -> float | None:
+    """Analyte (nM) a titration_curve result predicts at one concentration, at the titration's cell number.
+
+    Zero concentration returns the unstimulated wells. Without a fitted curve the mean of the
+    highest concentration tested is the only estimate there is. None when neither exists.
+    """
+    if forskolin_uM <= 0:
+        return curve["unstim_nM"] if curve["unstim_nM"] is not None else curve["bottom_nM"]
+    if not curve["fitted"]:
+        return curve["top_wells_nM"]
+    x = (forskolin_uM / curve["ec50_uM"]) ** curve["hill"]
+    return float(curve["bottom_nM"] + (curve["top_nM"] - curve["bottom_nM"]) * x / (1.0 + x))
+
+
+def estimate_pec50_anchored(wells: list[dict], use_standards: bool = True, anchor_logs: float = 2.0) -> dict[str, float]:
+    """pEC50 per compound with the vehicle controls pinning the zero-dose plateau.
+
+    The conversion and the no-curve rules are those of estimate_pec50. The difference is that
+    the vehicle control wells (role "neg") join every compound's curve as zero-dose points,
+    placed anchor_logs below its lowest concentration. In an inhibition assay the zero-dose
+    plateau is the high, noisy end of the curve and a potent compound may not reach it on the
+    ladder, so a free plateau lets the midpoint drift. A midpoint that lands below the lowest
+    concentration tested sits in the gap between the anchor and the ladder, where no well
+    constrains it, so that compound is left out. Without vehicle controls this is
+    estimate_pec50.
+    """
+    curve = standard_curve(wells) if use_standards else None
+
+    def convert(ratios):
+        ratios = np.array(ratios, float)
+        return invert_4pl(curve, ratios) if curve is not None else ratios
+
+    neg = convert([w["ratio"] for w in wells if w["role"] == "neg"])
+    pos = convert([w["ratio"] for w in wells if w["role"] == "pos"])
+    window = abs(pos.mean() - neg.mean()) if len(neg) and len(pos) else None
+    out: dict[str, float] = {}
+    for cid in sorted({w["id"] for w in wells if w["role"] == "cpd"}):
+        pts = [(w["conc_nM"], w["ratio"]) for w in wells if w["role"] == "cpd" and w["id"] == cid]
+        logx, y = np.log10([p[0] for p in pts]), convert([p[1] for p in pts])
+        lowest = logx.min()
+        if len(neg):
+            logx = np.concatenate([np.full(len(neg), lowest - anchor_logs), logx])
+            y = np.concatenate([neg, y])
+        fit = fit_4pl(logx, y)
+        if fit is None or fit["r2"] < MIN_R2 or fit["at_edge"]:
+            continue
+        if len(neg) and fit["logec50"] < lowest:
+            continue
+        if window is not None and abs(fit["top"] - fit["bottom"]) < MIN_SPAN * window:
+            continue
+        out[cid] = 9.0 - fit["logec50"]
+    return out

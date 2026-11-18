@@ -59,6 +59,10 @@ flowchart LR
 | `lead_opt` | which analogs to make each round and how to test them, then one nominee | a 625-analog potency and stability landscape | true desirability of the nominee over the library best |
 | `plate_review` | accept or repeat one finished dose-response plate, and the most likely cause | one planted execution fault, or none | 0.6 for the right verdict, 0.4 for the right cause |
 | `timecourse_review` | the same call on one finished stability time course | one planted execution fault, or none | 0.6 for the right verdict, 0.4 for the right cause |
+| `gi_fluid_stability` | which peptides go in gastric and intestinal fluid, time points, the quench per fluid, fresh or stored enzyme, the activity control, time zero, the internal standard | half-lives in each fluid, acid lability, the enzyme lot's activity | log half-life accuracy per peptide and fluid, halved if the run fails its QC |
+| `gi_camp_potency` | forskolin level and cell number (titrated or from the handbook), IBMX, the agonist dilution, standards, how the curve top is fitted | agonist pEC50s at a Gi-coupled receptor, the cell line's forskolin potency and cAMP output | pEC50 accuracy, halved if a potency plate fails Z' 0.5 |
+
+The last two were built by the environment factory (below), not by hand.
 
 ## Quick start
 
@@ -96,15 +100,16 @@ test checks every reference policy's episodes for truth field names.
 
 ## Expert rules: what the rewards can teach
 
-24 rules, 33 rule-trap pairs, 200 seeds each on the nominal rig
-([results/knowledge.md](results/knowledge.md)). **All 24 rules are drafts seeded from general
+39 rules, 49 rule-trap pairs, 200 seeds each on the nominal rig
+([results/knowledge.md](results/knowledge.md)). **All 39 rules are drafts seeded from general
 bench practice. None has been reviewed by an expert yet.**
 
-- The reward teaches 11 pairs outright (the expert wins on at least 90% of seeds).
-- It teaches 17 only on average.
-- It is blind to 5: no lid in `dose_response` and `assay_window`, choosing conditions by
-  raw-ratio Z' in `assay_window`, and, inside `lead_opt`, skipping the standard curve or the
-  internal standard upstream.
+- The reward teaches 19 pairs outright (the expert wins on at least 90% of seeds).
+- It teaches 23 only on average.
+- It is blind to 7: no lid in `dose_response` and `assay_window`, choosing conditions by
+  raw-ratio Z' in `assay_window`, skipping the standard curve or the internal standard
+  upstream inside `lead_opt`, and both forskolin decisions in `gi_camp_potency` (saturating
+  forskolin, and skipping the forskolin titration).
 
 A cross-entropy learner given reward alone rediscovered 6 of the 8 checkable dose-response
 rules in both of its runs. The two it missed, keeping off edge wells and lidding the plate,
@@ -166,6 +171,8 @@ their own.
 | `lead_opt` | 0.82 | one round only | no model, upstream no mixing, upstream two-point time course | upstream raw ratio, upstream no internal standard |
 | `plate_review` | 0.94 (scripted QC rules, seeds 10000+) | none | never questioning the data, repeating everything | none |
 | `timecourse_review` | 0.88 (scripted QC rules, seeds 10000+) | none | never questioning the data, repeating everything | none |
+| `gi_fluid_stability` | 0.83 | stored enzyme (92.0%), no activity control, no internal standard, fitting against the clock while the enzyme weakens; acid quench in gastric fluid left warm overnight (two changes) | acid quench in gastric fluid, late first time point, no true time zero | none |
+| `gi_camp_potency` | 0.63 | no forskolin, raw ratio instead of the cAMP standard curve, no mixing | no IBMX, free curve top, too many cells | saturating forskolin, skipping the forskolin titration |
 
 What that says, plainly:
 
@@ -183,6 +190,15 @@ What that says, plainly:
   curve upstream does not hurt the nominee (the bias moves every analog the same way) and it
   is cheaper, so on randomized rigs the reward slightly prefers it. A nominee-only reward is a
   weak teacher of measurement quality; the single-assay environments are where that is taught.
+- `gi_camp_potency` passes admission narrowly and does not yet teach the decision it is named
+  for. The simulated Gi pathway removes the same fraction of the forskolin response at any
+  forskolin level, so saturating forskolin costs nothing (the reward leans 0.003 toward it)
+  and handbook conditions are nearly as good as a titration. Real cells do not behave that
+  way; the missing term is listed in [docs/ASSUMPTIONS.md](docs/ASSUMPTIONS.md). Its expert
+  scores 0.60 on randomized rigs (0.58 on fresh seeds).
+- In `gi_fluid_stability` the stored-enzyme mistake is caught by the QC gate (the control
+  substrate reads slow), not by a wrong half-life, and it sits near the 90% line: 85 to 92%
+  depending on the block of seeds.
 - The floor is low in three environments: a null policy that answers without running
   anything scores 0.06 to 0.21 in `dose_response`, `stability` and `lead_opt`. `assay_window`
   has no null; a fixed kit-default commit with no pilots scores 0.48 against 0.60.
@@ -265,12 +281,38 @@ The method is supposed to catch its author too. So far:
   declare that one. This `gate_bypass` policy scores 0.66 against 0.68 for the expert and is
   kept on the card so it stays visible.
 
+## Environment factory
+
+New environments are built by agents and admitted by measurement, not by review of the code
+alone. One agent builds an environment on its own branch from a one-page brief. A second
+agent, told to break it, hunts for exploits, truth leaks, crashes and traps that are not
+what they claim. A third fixes what was found. Then the gate is run on seeds nobody tuned on:
+
+- the scripted expert scores at least 0.6 and a null policy at most 0.3;
+- at least three single-mistake traps are visible or clean, and none is inverted;
+- the whole suite passes and every existing card is unchanged, number for number.
+
+| environment | status | why |
+|---|---|---|
+| `gi_fluid_stability` | admitted | expert 0.83 (0.80 on fresh seeds), four traps visible, none inverted |
+| `gi_camp_potency` | admitted, narrowly | expert 0.63, exactly three traps visible, two blind |
+| `antagonist_potency` | held on its branch | reusing tips on the agonist ladder scores above the expert: its error cancels the tip-loss bias |
+| `selectivity_panel` | held on its branch | meets the numbers, but review found that a report with no supporting data scores the same as no report |
+| `cytotox_window` | held on its branch | skipping the DMSO match scores above the expert: no dose can carry more than 1% DMSO |
+
+A failed gate is a result. Each held environment names the rule its reward cannot yet teach.
+
 ## Limits
 
 - A policy that scores well here has learned this simulator. Transfer is unproven.
 - The expert policies are scripted references, not upper bounds.
-- One assay format (Gq-style, competitive TR-FRET), one stability format, one small additive
-  SAR landscape. No PK, selectivity, solubility, or toxicity yet.
+- Two cell assay formats (Gq-style and Gi cAMP, both competitive TR-FRET), two stability
+  formats (plasma-style and gastric and intestinal fluid), one small additive SAR landscape.
+  No PK, selectivity, solubility, or toxicity yet.
+- The shared liquid handler loses a little compound to every tip, fresh or not. Three
+  factory builds traced a bias of 0.04 to 0.08 log units in scripted potencies to it, and in
+  two unmerged environments it offsets a real mistake. Whether the size is right is a
+  question for instrument QC data.
 - Rewards use a 0.5 log tolerance (0.3 for time-course review) chosen by hand, not from real assay
   reproducibility. Review labels are a hard cut at that tolerance, so some sit close to it.
 - Lids and edge wells barely matter in the one-hour assays as simulated; that is a gap in
@@ -283,14 +325,15 @@ The method is supposed to catch its author too. So far:
 
 ## Roadmap
 
-- Expert review of the 24 draft rules, and new rules in the expert's own words.
+- Expert review of the 39 draft rules, and new rules in the expert's own words.
 - A human expert reference for the review environments.
-- More environments: PK, selectivity panel, solubility, hit triage. Each must ship with its card.
+- More environments: PK, solubility, hit triage, and the three held on branches (above).
+  Each must ship with its card.
 - A PyLabRobot compiler for the worklists.
 - Level 1 and 2 data from [docs/DATA.md](docs/DATA.md): instrument QC, then reference-compound replays.
 - An LLM-agent harness over `env.spec()`, and a pass-rate profile of current models per
   environment (difficulty calibration). No model has been run on these environments yet.
 - Replicate the learner over seeds before saying anything about domain randomization.
 - Close the `gate_bypass` exploit.
-- A self-improving loop: agents propose new environments and new traps, and a proposal is
-  admitted only if its envqc card passes.
+- Close the loop on the environment factory: let agents propose the environments and traps
+  too, with the same admission gate.

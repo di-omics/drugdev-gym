@@ -1,10 +1,10 @@
 {
   "summary": {
-    "rule_traps": 41,
-    "rules": 31,
-    "yes": 16,
-    "on average": 20,
-    "no": 5,
+    "rule_traps": 49,
+    "rules": 39,
+    "yes": 19,
+    "on average": 23,
+    "no": 7,
     "inverted": 0,
     "not_measured": 0,
     "checked": 8,
@@ -16,7 +16,7 @@
       "keep-off-the-outer-ring",
       "lid-the-plate"
     ],
-    "draft": 31
+    "draft": 39
   },
   "rows": [
     {
@@ -533,6 +533,102 @@
       "teaches": "yes",
       "win_rate": 0.935,
       "gap": 0.03994615247835309,
+      "learner": null
+    },
+    {
+      "env": "gi_camp_potency",
+      "id": "forskolin-at-its-ec80",
+      "said": "Run the agonist plate with forskolin near its EC80, not at a saturating dose.",
+      "status": "draft",
+      "trap": "forskolin_too_high",
+      "verdict": "blind",
+      "teaches": "no",
+      "win_rate": 0.4375,
+      "gap": -0.003446254236700308,
+      "learner": null
+    },
+    {
+      "env": "gi_camp_potency",
+      "id": "titrate-forskolin-on-your-cells",
+      "said": "Titrate forskolin on your own cells before the agonist plate; do not run it on handbook conditions.",
+      "status": "draft",
+      "trap": "skip_titration",
+      "verdict": "blind",
+      "teaches": "no",
+      "win_rate": 0.535,
+      "gap": 0.02719987066644236,
+      "learner": null
+    },
+    {
+      "env": "gi_camp_potency",
+      "id": "gi-needs-forskolin",
+      "said": "A Gi agonist plate needs forskolin in every cell well.",
+      "status": "draft",
+      "trap": "no_forskolin",
+      "verdict": "visible",
+      "teaches": "yes",
+      "win_rate": 0.9974999999999999,
+      "gap": 0.6846750236967742,
+      "learner": null
+    },
+    {
+      "env": "gi_camp_potency",
+      "id": "block-the-phosphodiesterases",
+      "said": "Put IBMX in the stimulation buffer.",
+      "status": "draft",
+      "trap": "no_ibmx",
+      "verdict": "weak",
+      "teaches": "on average",
+      "win_rate": 0.7875,
+      "gap": 0.16558984017172895,
+      "learner": null
+    },
+    {
+      "env": "gi_camp_potency",
+      "id": "camp-through-the-standard-curve",
+      "said": "Convert the ratio to cAMP through the standard curve before fitting potency.",
+      "status": "draft",
+      "trap": "raw_ratio",
+      "verdict": "visible",
+      "teaches": "yes",
+      "win_rate": 0.975,
+      "gap": 0.36596494611599184,
+      "learner": null
+    },
+    {
+      "env": "gi_camp_potency",
+      "id": "pin-the-forskolin-plateau",
+      "said": "Pin the top of every inhibition curve on the forskolin-only controls.",
+      "status": "draft",
+      "trap": "free_plateau",
+      "verdict": "weak",
+      "teaches": "on average",
+      "win_rate": 0.695,
+      "gap": 0.06835803685420316,
+      "learner": null
+    },
+    {
+      "env": "gi_camp_potency",
+      "id": "titrate-cells-onto-the-curve",
+      "said": "Titrate the cell number so the forskolin control lands inside the standard curve; more cells is not more signal.",
+      "status": "draft",
+      "trap": "too_many_cells",
+      "verdict": "weak",
+      "teaches": "on average",
+      "win_rate": 0.7000000000000001,
+      "gap": 0.13238252750017554,
+      "learner": null
+    },
+    {
+      "env": "gi_camp_potency",
+      "id": "mix-the-agonist-ladder",
+      "said": "Mix after every transfer in the agonist dilution.",
+      "status": "draft",
+      "trap": "no_mix",
+      "verdict": "visible",
+      "teaches": "yes",
+      "win_rate": 0.995,
+      "gap": 0.5868990972296182,
       "learner": null
     }
   ]
