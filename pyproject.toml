@@ -7,7 +7,7 @@ name = "drugdev-gym"
 version = "0.1.0"
 description = "Snap-together, simulation-first RL environments for cell assays and drug development"
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 dependencies = ["numpy>=1.26"]
 
 [project.optional-dependencies]

@@ -1,12 +1,13 @@
-"""Command line: drugdev-gym list | play | qc | learn."""
+"""Command line: drugdev-gym list | play | qc | learn | knowledge."""
 from __future__ import annotations
 
 import argparse
 import json
+import math
 import sys
 from pathlib import Path
 
-from . import envqc, learn
+from . import envqc, knowledge, learn
 from .policies import DR_EXPERT, POLICIES, run_episode
 from .registry import ENVS, RIGS, make
 
@@ -15,14 +16,27 @@ def _list(_args) -> None:
     for name, cls in ENVS.items():
         print(f"{name}: {sys.modules[cls.__module__].__doc__.strip().splitlines()[0]}")
         print(f"  policies: {', '.join(POLICIES[name])}")
-    print(f"rigs: {', '.join(RIGS)}; task id = env/rig/seed, any integer seed")
+    print(f"rigs: {', '.join(RIGS)}; task id = env/rig/seed, any non-negative integer seed")
+
+
+def _plain(value):
+    """JSON-safe copy: NaN and infinity become null."""
+    if isinstance(value, dict):
+        return {k: _plain(v) for k, v in value.items()}
+    if isinstance(value, (list, tuple)):
+        return [_plain(v) for v in value]
+    if isinstance(value, float) and not math.isfinite(value):
+        return None
+    return value
 
 
 def _play(args) -> None:
+    if args.policy not in POLICIES[args.env]:
+        raise SystemExit(f"unknown policy for {args.env}: {args.policy}; have {', '.join(POLICIES[args.env])}")
     env = make(args.env, seed=args.seed, rig=args.rig)
     reward, info = run_episode(env, POLICIES[args.env][args.policy](args.seed))
     print(json.dumps({"task": f"{args.env}/{args.rig}/{args.seed}", "policy": args.policy,
-                      "reward": round(reward, 4), "info": info}, indent=2, default=float))
+                      "reward": round(reward, 4), "info": _plain(info)}, indent=2, default=float))
 
 
 def _qc(args) -> None:
@@ -36,7 +50,10 @@ def _qc(args) -> None:
         summary[name] = card
         print(envqc.card_markdown(card))
     suffix = "" if args.rig == "nominal" else f"_{args.rig}"
-    (out / f"envqc{suffix}.json").write_text(json.dumps(summary, indent=2) + "\n")
+    path = out / f"envqc{suffix}.json"
+    if args.env and path.exists():  # a partial run updates its own cards and keeps the others
+        summary = {**json.loads(path.read_text()), **summary}
+    path.write_text(json.dumps(summary, indent=2) + "\n")
 
 
 def _learn(args) -> None:
@@ -65,6 +82,20 @@ def _learn(args) -> None:
     print("\n".join(lines))
 
 
+def _knowledge(args) -> None:
+    out = Path(args.out)
+    cards = json.loads((out / "envqc.json").read_text())
+    learned = None
+    if (out / "learning.json").exists():
+        runs = json.loads((out / "learning.json").read_text())["runs"]
+        learned = {f"learned on {rig}": run["design"] for rig, run in runs.items()}
+    rules = knowledge.load_rules()
+    rows = knowledge.coverage(rules, cards, learned)
+    (out / "knowledge.md").write_text(knowledge.markdown(rows))
+    (out / "knowledge.json").write_text(json.dumps({"summary": knowledge.summary(rows), "rows": rows}, indent=2) + "\n")
+    print(knowledge.markdown(rows))
+
+
 def main(argv=None) -> None:
     parser = argparse.ArgumentParser(prog="drugdev-gym", description=__doc__)
     sub = parser.add_subparsers(dest="command", required=True)
@@ -87,6 +118,9 @@ def main(argv=None) -> None:
     p.add_argument("--test-seeds", type=int, default=100)
     p.add_argument("--out", default="results")
     p.set_defaults(func=_learn)
+    p = sub.add_parser("knowledge")
+    p.add_argument("--out", default="results")
+    p.set_defaults(func=_knowledge)
     args = parser.parse_args(argv)
     args.func(args)
 

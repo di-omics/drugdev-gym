@@ -24,7 +24,9 @@ def evaluate(env_name: str, policy: str, seeds, rig="nominal") -> tuple[np.ndarr
 
 
 def verdict(gap: float, z: float, wins: float) -> str:
-    """clean > visible > weak > blind. See the legend in card_markdown."""
+    """clean > visible > weak > blind, or inverted. See the legend in card_markdown."""
+    if gap < 0 and wins < 0.4:
+        return "inverted"
     if gap > 0 and z >= 0.5:
         return "clean"
     if wins >= 0.9:
@@ -74,5 +76,6 @@ def card_markdown(card: dict) -> str:
         lines.append(f"| {r['policy']} | {r['mean']:.3f} | {r['sd']:.3f} | {r['p10']:.3f} | {r['p90']:.3f} | {gate} | {tail}")
     lines += ["", "Verdicts: clean = Z' >= 0.5 between the two reward distributions; visible = the expert wins on "
               ">= 90% of seeds; weak = the expert wins on 60 to 90% of seeds, or the mean gap is >= 0.1 (punished on "
-              "average, not reliably per episode); blind = neither (the reward cannot see this mistake).", ""]
+              "average, not reliably per episode); blind = neither (the reward cannot see this mistake); "
+              "inverted = the mistake scores higher and wins over 60% of seeds (the reward prefers it).", ""]
     return "\n".join(lines)

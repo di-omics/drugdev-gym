@@ -25,21 +25,24 @@ def test_a_large_mean_gap_is_never_called_blind():
     assert envqc.verdict(0.27, -4.0, 0.57) == "weak"  # bimodal trap: lucky half the time, ruined the rest
     assert envqc.verdict(0.03, -20.0, 0.59) == "blind"
     assert envqc.verdict(0.03, -20.0, 0.95) == "visible"
+    assert envqc.verdict(-0.05, -20.0, 0.30) == "inverted"  # the reward prefers the mistake
 
 
 def test_qc_card_covers_every_policy_on_the_same_seeds():
     card = envqc.qc_card("stability", n_seeds=4)
     assert [r["policy"] for r in card["rows"]] == list(POLICIES["stability"])
     assert "verdict" not in card["rows"][0] and all("verdict" in r for r in card["rows"][1:])
+    assert card["first_seed"] == 0 and card["n_seeds"] == 4
     text = envqc.card_markdown(card)
-    assert "| expert |" in text and "blind" in text
+    null = next(r for r in card["rows"] if r["policy"] == "null")
+    assert "| expert |" in text and f"| {null['verdict']}" in text and null["verdict"] in ("clean", "visible")
 
 
 def test_worklist_export_has_one_row_per_step():
     env = make("dose_response", seed=0)
     run_episode(env, POLICIES["dose_response"]["expert"](0))
-    rows = list(csv.DictReader(io.StringIO(worklist_csv(env.last_log))))
-    assert len(rows) == len(env.last_log) > 100
+    rows = list(csv.DictReader(io.StringIO(worklist_csv(env.step_log))))
+    assert len(rows) == len(env.step_log) > 100
     transfers = [r for r in rows if r["op"] == "transfer"]
     assert transfers[0]["src_plate"] == "dilution" and float(transfers[0]["ul"]) == DR_EXPERT["transfer_ul"]
     assert {r["op"] for r in rows} == {"fill", "transfer", "incubate", "read"}
@@ -59,6 +62,8 @@ def test_fingerprint_and_gap():
     assert gap({"zprime": 0.84, "neg_cv": 0.03}, sims)["stats"]["zprime"]["covered"]
     off = gap({"zprime": 0.2, "neg_cv": 0.03}, sims)
     assert not off["covered"] and off["stats"]["zprime"]["z"] < -2
+    assert off["stats"]["neg_cv"]["z"] == 0.0  # exact match with no simulated spread
+    assert gap({"zprime": float("nan")}, sims)["covered"] is None  # nothing could be compared
 
 
 def test_gap_flags_a_rig_the_simulator_was_not_calibrated_to():

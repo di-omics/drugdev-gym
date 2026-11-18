@@ -4,7 +4,7 @@ A hidden structure-activity landscape covers 5^4 = 625 analogs. Each round the a
 up to six analogs to make and chooses the protocols used to test them; the raw plate and
 LC-MS data come back exactly as the single environments return them. After at most four rounds the
 agent nominates one analog. The reward is the TRUE desirability of the nominee over the best
-in the library, so sloppy measurement upstream costs reward downstream.
+in the library, so a measurement mistake upstream can cost reward downstream.
 """
 from __future__ import annotations
 
@@ -117,7 +117,7 @@ class LeadOpt(Env):
                 half_lives[analog_id(a)] = 10.0 ** log_hl
             wells, rig_dr = simulate_plate(self.profile, self._noise, self.assay, compounds, dr)
             samples, rig_st = simulate_stability(self.profile, self._noise, half_lives, st)
-            self.last_log = rig_dr.log + rig_st.log
+            self._record(rig_dr.log + rig_st.log)
             self.cost += 20.0 * len(analogs)  # synthesis
             self.cost += plate_cost(len(wells), rig_dr.tips) + run_cost(len(samples), rig_st.tips)
             self.rounds += 1

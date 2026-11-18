@@ -37,7 +37,7 @@ Simulation gives 1 and 3 for free and fakes 2. Real data is needed mostly to fix
   edges, a starved ladder, no internal standard. These are what calibrate the traps, and the
   traps are what make a reward worth training on.
 
-## Ways to generate it, cheapest first
+## Ways to generate it, in the order I would do them
 
 | level | modality | gives | cost |
 |---|---|---|---|

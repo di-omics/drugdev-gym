@@ -1,7 +1,8 @@
 """Chemistry layer: the textbook models every environment is built on.
 
 Receptor response is a Hill curve. Detection is a competitive TR-FRET immunoassay, where
-the signal ratio FALLS as the analyte (the second messenger) rises, so raw ratios are not
+the signal ratio FALLS as the analyte rises (for a Gq assay the analyte is IP1, the
+accumulated metabolite of the second messenger IP3), so raw ratios are not
 proportional to response. Degradation is first order.
 """
 from __future__ import annotations

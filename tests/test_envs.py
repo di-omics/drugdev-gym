@@ -19,15 +19,18 @@ def test_same_seed_same_episode(env_name):
     assert play(env_name, "expert", 3)[0] != play(env_name, "expert", 4)[0]
 
 
-@pytest.mark.parametrize("env_name", list(ENVS))
-@pytest.mark.parametrize("rig", ["nominal", "randomized", "harsh"])
-def test_observations_are_json_and_never_leak_the_truth(env_name, rig):
-    env, policy = make(env_name, seed=5, rig=rig), POLICIES[env_name]["expert"](5)
+EVERY_POLICY = [(name, policy) for name in ENVS for policy in POLICIES[name]]
+
+
+@pytest.mark.parametrize("env_name,policy_name", EVERY_POLICY)
+@pytest.mark.parametrize("rig", ["nominal", "harsh"])
+def test_observations_are_json_and_never_carry_truth_fields(env_name, policy_name, rig):
+    env, policy = make(env_name, seed=5, rig=rig), POLICIES[env_name][policy_name](5)
     obs, done = env.reset(), False
     while not done:
         json.dumps(obs)  # the whole observation is plain JSON
         text = json.dumps({k: v for k, v in obs.items() if k != "spec"}).lower()  # spec is public task text
-        assert not any(word in text for word in HIDDEN_WORDS), env_name
+        assert not any(word in text for word in HIDDEN_WORDS), (env_name, policy_name)
         obs, reward, done, info = env.step(policy.act(obs))
         assert done or info == {}
     assert "truth" in info and reward <= 1.0
@@ -94,7 +97,9 @@ def test_lead_opt_quality_is_relative_to_the_library_best():
 
 
 def test_task_ids_round_trip():
-    env = make("stability/randomized/17")
+    from drugdevgym import task_id
+    assert task_id("stability", "randomized", 17) == "stability/randomized/17"
+    env = make(task_id("stability", "randomized", 17))
     assert env.seed == 17 and env.rig_mode == "randomized" and env.profile.name == "randomized"
     with pytest.raises(KeyError):
         make("alchemy")
@@ -105,3 +110,62 @@ def test_every_env_documents_its_actions_and_reward():
         spec = make(name).spec()
         assert spec["env"] == name and spec["actions"] and "reward" in spec
         json.dumps(spec)
+
+
+def test_malformed_numbers_are_rejected_not_crashes():
+    huge = 10 ** 400
+    for bad in ([[0], [5]], [[0, 5, 15]], [{}, {}], [0, float("nan")], [0, huge]):
+        obs, _, done, _ = make("stability", seed=1).step({"type": "run", "design": {**ST_EXPERT, "timepoints_min": bad}})
+        assert "error" in obs and not done, bad
+    for field, bad in (("n_points", float("nan")), ("n_points", float("inf")), ("n_points", huge),
+                       ("controls_per_side", float("nan")), ("top_conc_nM", float("nan"))):
+        obs, _, done, _ = make("dose_response", seed=1).step({"type": "run_plate", "design": {**DR_EXPERT, field: bad}})
+        assert "error" in obs and not done, (field, bad)
+
+
+def test_an_absurd_answer_scores_zero_instead_of_crashing():
+    env = make("dose_response", seed=1)
+    _, reward, done, info = env.step({"type": "report", "pEC50": {"cpd1": 10 ** 400, "cpd2": float("nan")}})
+    assert done and info["accuracy"] == 0.0
+
+
+def test_plates_used_must_name_real_plates():
+    env = make("dose_response", seed=1)
+    env.step({"type": "run_plate", "design": DR_EXPERT})
+    for bad in ([1.5], ["1"], [3], [float("nan")]):
+        obs, _, done, _ = env.step({"type": "report", "pEC50": {}, "plates_used": bad})
+        assert "error" in obs and not done, bad
+    _, _, done, info = env.step({"type": "report", "pEC50": {}, "plates_used": [1.0]})
+    assert done and info["qc_pass"]
+
+
+def test_constructor_limits():
+    from drugdevgym.envs import DoseResponse, Stability
+    for cls in (DoseResponse, Stability):
+        with pytest.raises(ValueError):
+            cls(seed=0, n_compounds=9)
+    with pytest.raises(ValueError):
+        make("dose_response", seed=-1)
+
+
+def test_a_saturated_assay_earns_nothing():
+    # seed 329 has a very productive cell line: 80k cells for 180 min is far off the standard curve
+    env = make("assay_window", seed=329)
+    _, reward, done, info = env.step({"type": "commit", "cells_k": 80.0, "stim_min": 180.0, "lid": True,
+                                      "avoid_edges": True})
+    assert done and reward <= 0.0 and not info["qc_pass"]
+    assert info["zprime_raw_ratio"] > 0.5  # the raw ratio would have passed it
+
+
+def test_the_gate_bypass_exploit_is_still_open_and_on_the_card():
+    assert "gate_bypass" in POLICIES["dose_response"]
+    _, info = play("dose_response", "gate_bypass", 3)
+    assert info["qc_pass"] and len(info["zprime"]) == 1
+
+
+def test_worklist_names_what_goes_into_each_well():
+    env = make("dose_response", seed=0)
+    run_episode(env, POLICIES["dose_response"]["expert"](0))
+    labels = {s.get("what") for s in env.step_log if s["op"] == "fill"}
+    assert {"cells", "diluent", "vehicle", "reference agonist", "detection mix"} <= labels
+    assert any(str(x).startswith("analyte standard") for x in labels)

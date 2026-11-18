@@ -1,6 +1,7 @@
 """Sim-to-real hooks. Nothing here has touched hardware; these are the joints built for it.
 
-1. worklist_csv: the steps an agent's protocol expands to, as a robot-neutral worklist.
+1. worklist_csv: the liquid-handling steps an agent's protocol expands to, as a robot-neutral
+   worklist (fills, transfers, incubations, plate reads; LC-MS injections are not exported).
 2. RigProfile.from_qc (in rig.py): fit the simulated pipetting error to real QC data.
 3. fingerprint + gap: summarise a real control plate, and measure where it falls inside the
    distribution the simulator predicts for the same protocol. That number is the gap.
@@ -15,12 +16,12 @@ import numpy as np
 from .analysis import zprime
 from .rig import EDGE, ROW_NAMES
 
-WORKLIST_FIELDS = ["step", "op", "src_plate", "src_well", "dst_plate", "dst_well", "ul", "new_tip", "mix_after",
+WORKLIST_FIELDS = ["step", "run", "op", "src_plate", "src_well", "dst_plate", "dst_well", "ul", "new_tip", "mix_after",
                    "what", "minutes", "lid"]
 
 
 def worklist_csv(log: list[dict]) -> str:
-    """Turn an environment's step log (env.last_log) into a CSV worklist."""
+    """Turn an environment's step log (env.step_log) into a CSV worklist."""
     buf = io.StringIO()
     writer = csv.DictWriter(buf, fieldnames=WORKLIST_FIELDS, extrasaction="ignore", lineterminator="\n")
     writer.writeheader()
@@ -58,18 +59,23 @@ def fingerprint(wells: list[dict]) -> dict:
 def gap(real: dict, simulated: list[dict], z_limit: float = 2.0) -> dict:
     """Where each real QC statistic sits in the simulated distribution, as a z-score.
 
-    covered = |z| <= z_limit for every statistic both sides could compute. An uncovered
-    statistic names the physics the simulator is missing or has mis-sized.
+    covered = |z| <= z_limit for every statistic both sides could compute (None when no
+    statistic could be compared). An uncovered statistic names the physics the simulator is
+    missing or has mis-sized.
     """
-    report, covered = {}, True
+    report, compared, covered = {}, 0, True
     for key, value in real.items():
         sims = np.array([s[key] for s in simulated if np.isfinite(s.get(key, np.nan))], float)
         if not np.isfinite(value) or len(sims) < 5:
             report[key] = {"real": value, "z": None, "covered": None}
             continue
         sd = sims.std(ddof=1)
-        z = float((value - sims.mean()) / sd) if sd > 0 else float("inf")
+        if sd > 1e-12 * max(1.0, abs(sims.mean())):
+            z = float((value - sims.mean()) / sd)
+        else:  # no simulated spread
+            z = 0.0 if np.isclose(value, sims.mean()) else float("inf")
         ok = abs(z) <= z_limit
+        compared += 1
         covered = covered and ok
         report[key] = {"real": float(value), "sim_mean": float(sims.mean()), "sim_sd": float(sd), "z": z, "covered": ok}
-    return {"covered": covered, "stats": report}
+    return {"covered": covered if compared else None, "compared": compared, "stats": report}

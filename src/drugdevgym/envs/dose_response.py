@@ -12,7 +12,7 @@ import numpy as np
 
 from ..analysis import zprime
 from ..chem import Kit, hill
-from ..rig import EDGE, Plate, Rig, RigProfile, usable_wells, well_name
+from ..rig import EDGE, ROWS, Plate, Rig, RigProfile, usable_wells, well_name
 from .base import Env, log_error_score, spec_help, validate
 
 STAMP_UL = 10.0
@@ -32,7 +32,7 @@ DESIGN_SPEC = {
     "replicates": ("int", 1, 4, "assay wells per ladder point"),
     "transfer_ul": ("float", 2.0, 100.0, "ladder transfer volume; each ladder well holds transfer_ul * dilution_factor"),
     "mix": ("bool", None, None, "mix each ladder well after the transfer into it"),
-    "new_tips": ("bool", None, None, "fresh tip for every transfer instead of one tip per compound"),
+    "new_tips": ("bool", None, None, "fresh tip for every transfer instead of two tips per compound (one for the ladder, one for stamping)"),
     "avoid_edges": ("bool", None, None, "leave the outer ring of the assay plate empty (60 wells instead of 96)"),
     "lid": ("bool", None, None, "lid on the assay plate during the 37 C stimulation"),
     "standards": ("bool", None, None, "include the 8-point analyte standard curve (8 wells)"),
@@ -110,9 +110,10 @@ def simulate_plate(profile: RigProfile, rng: np.random.Generator, assay: CellAss
 
     # serial dilution ladders, one row of the dilution plate per compound, high to low
     for k, c in enumerate(compounds):
-        rig.fill(dil, (k, 0), diluent + t, {c.cid: design["top_conc_nM"] * INTO_ASSAY})
+        rig.fill(dil, (k, 0), diluent + t, {c.cid: design["top_conc_nM"] * INTO_ASSAY},
+                 what=f"{c.cid} at {design['top_conc_nM'] * INTO_ASSAY:g} nM")
         for j in range(1, n):
-            rig.fill(dil, (k, j), diluent)
+            rig.fill(dil, (k, j), diluent, what="diluent")
         for j in range(1, n):
             rig.transfer(dil, (k, j - 1), dil, (k, j), t, new_tip=design["new_tips"] or j == 1,
                          mix_after=design["mix"])
@@ -122,16 +123,17 @@ def simulate_plate(profile: RigProfile, rng: np.random.Generator, assay: CellAss
     for w, role, *_ in layout:
         if role == "std":
             continue
-        rig.fill(plate, w, CELLS_UL)
+        rig.fill(plate, w, CELLS_UL, what="cells")
         edge = 1.0 - profile.edge_cell_loss if EDGE[w] else 1.0
         cellf[w] = max(0.0, 1.0 + rng.normal(0.0, assay.cell_cv)) * edge
     for w, role, _cid, _conc, std in layout:
         if role == "neg":
-            rig.fill(plate, w, STAMP_UL)
+            rig.fill(plate, w, STAMP_UL, what="vehicle")
         elif role == "pos":
-            rig.fill(plate, w, STAMP_UL, {"ref": 1.0})
+            rig.fill(plate, w, STAMP_UL, {"ref": 1.0}, what="reference agonist")
         elif role == "std":
-            rig.fill(plate, w, CELLS_UL + STAMP_UL, {"M": std * FINAL_UL / (CELLS_UL + STAMP_UL)})
+            rig.fill(plate, w, CELLS_UL + STAMP_UL, {"M": std * FINAL_UL / (CELLS_UL + STAMP_UL)},
+                     what=f"analyte standard {std:g} nM")
     for k, c in enumerate(compounds):
         first = True
         for j in reversed(range(n)):
@@ -156,7 +158,7 @@ def simulate_plate(profile: RigProfile, rng: np.random.Generator, assay: CellAss
             frac = c.emax * float(hill(plate.a(cid)[w] / effective_vol[w], 10.0 ** (9.0 - c.pec50), c.hill))
         analyte[w] = cellf[w] * (assay.basal + (assay.top - assay.basal) * frac) * FINAL_UL
     for w, *_ in layout:
-        rig.fill(plate, w, DETECT_UL)
+        rig.fill(plate, w, DETECT_UL, what="detection mix")
     conc = np.where(plate.vol > 0, analyte / np.maximum(plate.vol, 1e-9), 0.0)
     ratio = rig.read(assay.kit.ratio(conc))
     wells = [{"well": well_name(w), "role": role, "id": cid, "conc_nM": conc_nm, "std_nM": std,
@@ -175,6 +177,8 @@ class DoseResponse(Env):
 
     def __init__(self, seed: int = 0, rig="nominal", n_compounds: int = 4):
         super().__init__(seed, rig)
+        if not 1 <= n_compounds <= ROWS:
+            raise ValueError(f"n_compounds must be between 1 and {ROWS}")
         self.assay = draw_assay(self._truth_rng)
         self.compounds = [draw_compound(self._truth_rng, f"cpd{i + 1}") for i in range(n_compounds)]
         self.plates: list[list[dict]] = []
@@ -183,12 +187,14 @@ class DoseResponse(Env):
         return {
             "env": self.name,
             "task": ("Measure the pEC50 of each compound on a Gq-style cell assay read by a competitive TR-FRET "
-                     "immunoassay (the ratio falls as the second messenger rises). Run up to "
+                     "immunoassay (the ratio falls as the analyte rises). Run up to "
                      f"{self.MAX_PLATES} plates, then report."),
             "actions": {
                 "run_plate": {"design": spec_help(DESIGN_SPEC)},
                 "report": {"pEC50": "object mapping compound id to pEC50 (molar)",
-                           "plates_used": "optional list of plate numbers the answer rests on (default: all run)"},
+                           "plates_used": "optional list of plate numbers the answer rests on (default: all run). "
+                                          "Self-declared: the QC gate is evaluated on these plates and nothing "
+                                          "checks that the answer was computed from them."},
             },
             "labware": {"stamp_ul": STAMP_UL, "cells_ul": CELLS_UL, "ladder_well_max_ul": LADDER_MAX_UL,
                         "nominal_dead_volume_ul": RigProfile().dead_volume_ul, "stimulation_min": STIM_MIN,
@@ -213,7 +219,7 @@ class DoseResponse(Env):
                 return self._reject(err)
             wells, rig = simulate_plate(self.profile, self._noise, self.assay, self.compounds, design)
             self.plates.append(wells)
-            self.last_log = rig.log
+            self._record(rig.log)
             self.cost += plate_cost(len(wells), rig.tips)
             return ({"phase": "data", "plate": len(self.plates), "wells": wells, "cost": round(self.cost, 2),
                      "plates_left": self.MAX_PLATES - len(self.plates)}, 0.0, False, {})
@@ -225,8 +231,13 @@ class DoseResponse(Env):
         answers = action.get("pEC50")
         answers = answers if isinstance(answers, dict) else {}
         used = action.get("plates_used")
-        used = used if isinstance(used, list) else list(range(1, len(self.plates) + 1))
-        used = [p for p in used if isinstance(p, int) and 1 <= p <= len(self.plates)]
+        if used is None:
+            used = list(range(1, len(self.plates) + 1))
+        elif not isinstance(used, list) or any(
+                isinstance(p, bool) or not isinstance(p, (int, float)) or not 1 <= p <= len(self.plates) or p != int(p)
+                for p in used):
+            return self._reject(f"plates_used must list plate numbers between 1 and {len(self.plates)}")
+        used = sorted({int(p) for p in used})
         z = [zprime([w["ratio"] for w in self.plates[p - 1] if w["role"] == "pos"],
                     [w["ratio"] for w in self.plates[p - 1] if w["role"] == "neg"]) for p in used]
         qc_pass = bool(used) and all(np.isfinite(v) and v >= ZPRIME_GATE for v in z)
@@ -234,7 +245,10 @@ class DoseResponse(Env):
         scores = []
         for c in self.compounds:
             est = answers.get(c.cid)
-            est = float(est) if isinstance(est, (int, float, np.floating)) and not isinstance(est, bool) else None
+            try:
+                est = float(est) if isinstance(est, (int, float, np.floating)) and not isinstance(est, bool) else None
+            except (OverflowError, ValueError):
+                est = None
             scores.append(log_error_score(est, c.pec50))
             errors[c.cid] = None if est is None else round(est - c.pec50, 3)
         accuracy = float(np.mean(scores))

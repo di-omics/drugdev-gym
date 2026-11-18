@@ -1,0 +1,183 @@
+# Expert rules: what a bench scientist knows, written so a reward can be tested against it.
+#
+# One [[rule]] per piece of knowledge.
+#   said    the rule in the expert's own words
+#   why     the mechanism, in one sentence
+#   env     the environment it applies to
+#   traps   policies that break exactly this rule (see policies.py)
+#   check   optional: name of a function in knowledge.CHECKS that tells whether a
+#           dose-response design follows the rule (used to ask what a learner rediscovered)
+#   status  "draft" = seeded from general bench practice, not yet reviewed by the expert
+#           "expert" = the expert's own statement
+#
+# To add knowledge: write the rule, add a trap that breaks only that rule, run
+# `drugdev-gym qc` and `drugdev-gym knowledge`. If the verdict is blind, the simulator or the
+# reward is missing the mechanism, and that is the next thing to build.
+
+[[rule]]
+id = "mix-every-ladder-step"
+env = "dose_response"
+said = "Mix after every transfer in a serial dilution."
+why = "An unmixed well is sampled unevenly, and the error compounds down the ladder."
+traps = ["no_mix"]
+check = "mix"
+status = "draft"
+
+[[rule]]
+id = "fresh-tip-every-transfer"
+env = "dose_response"
+said = "Change tips between ladder steps."
+why = "A reused tip carries the higher concentration forward, worst for sticky compounds."
+traps = ["reuse_tips"]
+check = "new_tips"
+status = "draft"
+
+[[rule]]
+id = "keep-off-the-outer-ring"
+env = "dose_response"
+said = "Keep assay wells off the outer ring."
+why = "Cells in edge wells respond differently after overnight plating."
+traps = ["edge_wells"]
+check = "avoid_edges"
+status = "draft"
+
+[[rule]]
+id = "lid-the-plate"
+env = "dose_response"
+said = "Lid the plate during the 37 C incubation."
+why = "Open wells evaporate, fastest on the outer ring."
+traps = ["no_lid"]
+check = "lid"
+status = "draft"
+
+[[rule]]
+id = "read-through-the-standard-curve"
+env = "dose_response"
+said = "Convert the ratio to analyte through the standard curve before fitting potency."
+why = "In a competitive immunoassay the ratio is not proportional to response, so raw-ratio fits shift the EC50."
+traps = ["raw_ratio"]
+check = "standards"
+status = "draft"
+
+[[rule]]
+id = "span-the-whole-curve"
+env = "dose_response"
+said = "Dose wide enough to see both plateaus when you do not know the potency."
+why = "A fit with a missing plateau cannot place the midpoint."
+traps = ["narrow_range"]
+check = "span"
+status = "draft"
+
+[[rule]]
+id = "respect-dead-volume"
+env = "dose_response"
+said = "A ladder well has to hold everything you will take out of it, plus the dead volume."
+why = "Below the dead volume the tip pulls air and the assay well silently gets less compound."
+traps = ["thin_ladder"]
+check = "ladder_volume"
+status = "draft"
+
+[[rule]]
+id = "enough-controls"
+env = "dose_response"
+said = "Put enough negative and positive controls on every plate to compute a Z-prime."
+why = "Without a measured window nobody can tell a good plate from a bad one."
+traps = ["few_controls"]
+check = "controls"
+status = "draft"
+
+[[rule]]
+id = "internal-standard"
+env = "stability"
+said = "Quench into internal standard and read the analyte over it."
+why = "Injection-to-injection variability is larger than the decay you are trying to measure."
+traps = ["no_internal_standard"]
+status = "draft"
+
+[[rule]]
+id = "mix-after-spike"
+env = "stability"
+said = "Mix the matrix after spiking, before the time-zero sample."
+why = "An unmixed time zero reads low, which makes everything after it look too stable."
+traps = ["no_mix"]
+status = "draft"
+
+[[rule]]
+id = "cover-long-incubations"
+env = "stability"
+said = "Lid the incubation plate and stay off the outer ring for hours-long time courses."
+why = "Evaporation concentrates the later samples and hides decay; an unlidded edge well is the worst case."
+traps = ["no_lid", "edge_wells", "no_lid_on_edge_wells"]
+status = "draft"
+
+[[rule]]
+id = "time-points-for-fast-and-slow"
+env = "stability"
+said = "Spread time points so both a five-minute and a five-hour half-life leave several usable points."
+why = "Two points cannot resolve a fast compound, and early-only points cannot see a slow one."
+traps = ["two_point", "early_only"]
+status = "draft"
+
+[[rule]]
+id = "replicate-incubations"
+env = "stability"
+said = "Run at least two incubation wells per compound."
+why = "Time-zero agreement between replicates is the run's own QC."
+traps = ["single_replicate"]
+status = "draft"
+
+[[rule]]
+id = "respect-the-lloq"
+env = "stability"
+said = "Drop points below the limit of quantification before fitting."
+why = "Noise-floor points flatten the slope and make a fast compound look stable."
+traps = ["no_lloq"]
+status = "draft"
+
+[[rule]]
+id = "titrate-the-cells"
+env = "assay_window"
+said = "Titrate cell density; do not assume more cells or the kit default is right."
+why = "Too much analyte pushes the signal onto the flat end of the standard curve."
+traps = ["max_cells", "min_cells", "kit_default"]
+status = "draft"
+
+[[rule]]
+id = "judge-the-window-in-analyte-units"
+env = "assay_window"
+said = "Judge the assay window after back-calculation, not on the raw ratio."
+why = "A saturated competitive assay can keep a good raw-ratio Z-prime with no usable window."
+traps = ["raw_ratio_zprime"]
+status = "draft"
+
+[[rule]]
+id = "validate-as-you-will-run"
+env = "assay_window"
+said = "Validate with the lid on and off the outer ring, the way the screen will run."
+why = "Edge and evaporation effects widen the controls."
+traps = ["no_lid", "edge_wells"]
+status = "draft"
+
+[[rule]]
+id = "measure-well-before-you-rank"
+env = "lead_opt"
+said = "Do not rank analogs on a sloppy assay."
+why = "A wrong measurement upstream picks the wrong compound downstream."
+traps = ["upstream_no_mix", "upstream_raw_ratio", "upstream_two_point", "upstream_no_internal_standard"]
+status = "draft"
+
+[[rule]]
+id = "learn-from-each-round"
+env = "lead_opt"
+said = "Use what each round taught you to choose the next analogs."
+why = "Random picks waste synthesis; structure-activity trends are mostly additive."
+traps = ["no_model"]
+status = "draft"
+
+[[rule]]
+id = "iterate"
+env = "lead_opt"
+said = "Run more than one design-make-test round before nominating."
+why = "The first batch only maps the landscape."
+traps = ["one_round"]
+status = "draft"

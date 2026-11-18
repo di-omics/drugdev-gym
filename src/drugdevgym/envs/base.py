@@ -42,20 +42,22 @@ def validate(spec: dict, design) -> tuple[dict | None, str | None]:
                 return None, f"{key} must be true or false"
             clean[key] = bool(v)
         elif kind == "times":
-            if not isinstance(v, (list, tuple)) or not 2 <= len(set(v)) <= 8:
+            if not isinstance(v, (list, tuple)):
                 return None, f"{key} must list 2 to 8 distinct time points"
             if any(isinstance(t, bool) or not isinstance(t, (int, float, np.integer, np.floating)) for t in v):
                 return None, f"{key} must be numbers"
             if any(not lo <= t <= hi for t in v):
                 return None, f"{key} must lie between {lo} and {hi}"
+            if not 2 <= len({float(t) for t in v}) <= 8:
+                return None, f"{key} must list 2 to 8 distinct time points"
             clean[key] = sorted({float(t) for t in v})
         else:
             if isinstance(v, bool) or not isinstance(v, (int, float, np.integer, np.floating)):
                 return None, f"{key} must be a number"
+            if not lo <= v <= hi:  # also rejects NaN, infinity and absurd integers before any conversion
+                return None, f"{key} must be between {lo} and {hi}"
             if kind == "int" and float(v) != int(v):
                 return None, f"{key} must be a whole number"
-            if not lo <= v <= hi:
-                return None, f"{key} must be between {lo} and {hi}"
             clean[key] = int(v) if kind == "int" else float(v)
     return clean, None
 
@@ -78,13 +80,16 @@ class Env:
 
     def __init__(self, seed: int = 0, rig="nominal"):
         self.seed = int(seed)
+        if self.seed < 0:
+            raise ValueError("seed must be a non-negative integer")
         self.rig_mode = rig if isinstance(rig, str) else rig.name
         self._truth_rng = np.random.default_rng([self.seed, 1])
         self.profile = resolve_rig(rig, np.random.default_rng([self.seed, 2]))
         self._noise = np.random.default_rng([self.seed, 3])
         self.cost = 0.0
         self.done = False
-        self.last_log: list[dict] = []
+        self.step_log: list[dict] = []  # every rig step of the episode, tagged with its run number
+        self._runs = 0
         self._invalid = 0
 
     def spec(self) -> dict:
@@ -95,6 +100,10 @@ class Env:
 
     def step(self, action: dict) -> tuple[dict, float, bool, dict]:
         raise NotImplementedError
+
+    def _record(self, log: list[dict]) -> None:
+        self._runs += 1
+        self.step_log += [{"run": self._runs, **step} for step in log]
 
     def _check_open(self, action) -> str | None:
         if self.done:

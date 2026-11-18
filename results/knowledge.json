@@ -1,0 +1,394 @@
+{
+  "summary": {
+    "rule_traps": 29,
+    "rules": 20,
+    "yes": 11,
+    "on average": 13,
+    "no": 5,
+    "inverted": 0,
+    "checked": 8,
+    "rediscovered": {
+      "learned on nominal": 6,
+      "learned on randomized": 6
+    },
+    "missed": [
+      "keep-off-the-outer-ring",
+      "lid-the-plate"
+    ],
+    "draft": 20
+  },
+  "rows": [
+    {
+      "env": "dose_response",
+      "id": "mix-every-ladder-step",
+      "said": "Mix after every transfer in a serial dilution.",
+      "status": "draft",
+      "trap": "no_mix",
+      "verdict": "visible",
+      "teaches": "yes",
+      "win_rate": 0.995,
+      "gap": 0.6069384374669148,
+      "learner": {
+        "learned on nominal": true,
+        "learned on randomized": true
+      }
+    },
+    {
+      "env": "dose_response",
+      "id": "fresh-tip-every-transfer",
+      "said": "Change tips between ladder steps.",
+      "status": "draft",
+      "trap": "reuse_tips",
+      "verdict": "weak",
+      "teaches": "on average",
+      "win_rate": 0.63,
+      "gap": 0.03302475728174559,
+      "learner": {
+        "learned on nominal": true,
+        "learned on randomized": true
+      }
+    },
+    {
+      "env": "dose_response",
+      "id": "keep-off-the-outer-ring",
+      "said": "Keep assay wells off the outer ring.",
+      "status": "draft",
+      "trap": "edge_wells",
+      "verdict": "weak",
+      "teaches": "on average",
+      "win_rate": 0.695,
+      "gap": 0.07683764411714433,
+      "learner": {
+        "learned on nominal": false,
+        "learned on randomized": false
+      }
+    },
+    {
+      "env": "dose_response",
+      "id": "lid-the-plate",
+      "said": "Lid the plate during the 37 C incubation.",
+      "status": "draft",
+      "trap": "no_lid",
+      "verdict": "blind",
+      "teaches": "no",
+      "win_rate": 0.47,
+      "gap": -0.0003926732604188077,
+      "learner": {
+        "learned on nominal": false,
+        "learned on randomized": false
+      }
+    },
+    {
+      "env": "dose_response",
+      "id": "read-through-the-standard-curve",
+      "said": "Convert the ratio to analyte through the standard curve before fitting potency.",
+      "status": "draft",
+      "trap": "raw_ratio",
+      "verdict": "visible",
+      "teaches": "yes",
+      "win_rate": 1.0,
+      "gap": 0.6200477878746904,
+      "learner": {
+        "learned on nominal": true,
+        "learned on randomized": true
+      }
+    },
+    {
+      "env": "dose_response",
+      "id": "span-the-whole-curve",
+      "said": "Dose wide enough to see both plateaus when you do not know the potency.",
+      "status": "draft",
+      "trap": "narrow_range",
+      "verdict": "visible",
+      "teaches": "yes",
+      "win_rate": 0.97,
+      "gap": 0.3698333548620691,
+      "learner": {
+        "learned on nominal": true,
+        "learned on randomized": true
+      }
+    },
+    {
+      "env": "dose_response",
+      "id": "respect-dead-volume",
+      "said": "A ladder well has to hold everything you will take out of it, plus the dead volume.",
+      "status": "draft",
+      "trap": "thin_ladder",
+      "verdict": "clean",
+      "teaches": "yes",
+      "win_rate": 1.0,
+      "gap": 0.7390159323265753,
+      "learner": {
+        "learned on nominal": true,
+        "learned on randomized": true
+      }
+    },
+    {
+      "env": "dose_response",
+      "id": "enough-controls",
+      "said": "Put enough negative and positive controls on every plate to compute a Z-prime.",
+      "status": "draft",
+      "trap": "few_controls",
+      "verdict": "visible",
+      "teaches": "yes",
+      "win_rate": 0.995,
+      "gap": 0.3485436895191546,
+      "learner": {
+        "learned on nominal": true,
+        "learned on randomized": true
+      }
+    },
+    {
+      "env": "stability",
+      "id": "internal-standard",
+      "said": "Quench into internal standard and read the analyte over it.",
+      "status": "draft",
+      "trap": "no_internal_standard",
+      "verdict": "visible",
+      "teaches": "yes",
+      "win_rate": 0.99,
+      "gap": 0.4195358672811697,
+      "learner": null
+    },
+    {
+      "env": "stability",
+      "id": "mix-after-spike",
+      "said": "Mix the matrix after spiking, before the time-zero sample.",
+      "status": "draft",
+      "trap": "no_mix",
+      "verdict": "visible",
+      "teaches": "yes",
+      "win_rate": 1.0,
+      "gap": 0.46589039775704055,
+      "learner": null
+    },
+    {
+      "env": "stability",
+      "id": "cover-long-incubations",
+      "said": "Lid the incubation plate and stay off the outer ring for hours-long time courses.",
+      "status": "draft",
+      "trap": "no_lid",
+      "verdict": "weak",
+      "teaches": "on average",
+      "win_rate": 0.69,
+      "gap": 0.01067708907554965,
+      "learner": null
+    },
+    {
+      "env": "stability",
+      "id": "cover-long-incubations",
+      "said": "Lid the incubation plate and stay off the outer ring for hours-long time courses.",
+      "status": "draft",
+      "trap": "edge_wells",
+      "verdict": "weak",
+      "teaches": "on average",
+      "win_rate": 0.66,
+      "gap": 0.00676375624515102,
+      "learner": null
+    },
+    {
+      "env": "stability",
+      "id": "cover-long-incubations",
+      "said": "Lid the incubation plate and stay off the outer ring for hours-long time courses.",
+      "status": "draft",
+      "trap": "no_lid_on_edge_wells",
+      "verdict": "visible",
+      "teaches": "yes",
+      "win_rate": 0.98,
+      "gap": 0.18934585435306617,
+      "learner": null
+    },
+    {
+      "env": "stability",
+      "id": "time-points-for-fast-and-slow",
+      "said": "Spread time points so both a five-minute and a five-hour half-life leave several usable points.",
+      "status": "draft",
+      "trap": "two_point",
+      "verdict": "weak",
+      "teaches": "on average",
+      "win_rate": 0.855,
+      "gap": 0.2896240255288225,
+      "learner": null
+    },
+    {
+      "env": "stability",
+      "id": "time-points-for-fast-and-slow",
+      "said": "Spread time points so both a five-minute and a five-hour half-life leave several usable points.",
+      "status": "draft",
+      "trap": "early_only",
+      "verdict": "visible",
+      "teaches": "yes",
+      "win_rate": 0.9,
+      "gap": 0.15677097355543423,
+      "learner": null
+    },
+    {
+      "env": "stability",
+      "id": "replicate-incubations",
+      "said": "Run at least two incubation wells per compound.",
+      "status": "draft",
+      "trap": "single_replicate",
+      "verdict": "clean",
+      "teaches": "yes",
+      "win_rate": 1.0,
+      "gap": 0.46351012657913726,
+      "learner": null
+    },
+    {
+      "env": "stability",
+      "id": "respect-the-lloq",
+      "said": "Drop points below the limit of quantification before fitting.",
+      "status": "draft",
+      "trap": "no_lloq",
+      "verdict": "weak",
+      "teaches": "on average",
+      "win_rate": 0.875,
+      "gap": 0.21834404795312268,
+      "learner": null
+    },
+    {
+      "env": "assay_window",
+      "id": "titrate-the-cells",
+      "said": "Titrate cell density; do not assume more cells or the kit default is right.",
+      "status": "draft",
+      "trap": "max_cells",
+      "verdict": "weak",
+      "teaches": "on average",
+      "win_rate": 0.64,
+      "gap": 0.2352921714403618,
+      "learner": null
+    },
+    {
+      "env": "assay_window",
+      "id": "titrate-the-cells",
+      "said": "Titrate cell density; do not assume more cells or the kit default is right.",
+      "status": "draft",
+      "trap": "min_cells",
+      "verdict": "weak",
+      "teaches": "on average",
+      "win_rate": 0.735,
+      "gap": 0.24701927692137687,
+      "learner": null
+    },
+    {
+      "env": "assay_window",
+      "id": "titrate-the-cells",
+      "said": "Titrate cell density; do not assume more cells or the kit default is right.",
+      "status": "draft",
+      "trap": "kit_default",
+      "verdict": "weak",
+      "teaches": "on average",
+      "win_rate": 0.675,
+      "gap": 0.11785947112174772,
+      "learner": null
+    },
+    {
+      "env": "assay_window",
+      "id": "judge-the-window-in-analyte-units",
+      "said": "Judge the assay window after back-calculation, not on the raw ratio.",
+      "status": "draft",
+      "trap": "raw_ratio_zprime",
+      "verdict": "blind",
+      "teaches": "no",
+      "win_rate": 0.49,
+      "gap": -0.00011679672193376511,
+      "learner": null
+    },
+    {
+      "env": "assay_window",
+      "id": "validate-as-you-will-run",
+      "said": "Validate with the lid on and off the outer ring, the way the screen will run.",
+      "status": "draft",
+      "trap": "no_lid",
+      "verdict": "blind",
+      "teaches": "no",
+      "win_rate": 0.595,
+      "gap": 0.0001500098440676556,
+      "learner": null
+    },
+    {
+      "env": "assay_window",
+      "id": "validate-as-you-will-run",
+      "said": "Validate with the lid on and off the outer ring, the way the screen will run.",
+      "status": "draft",
+      "trap": "edge_wells",
+      "verdict": "weak",
+      "teaches": "on average",
+      "win_rate": 0.805,
+      "gap": 0.0548786136344539,
+      "learner": null
+    },
+    {
+      "env": "lead_opt",
+      "id": "measure-well-before-you-rank",
+      "said": "Do not rank analogs on a sloppy assay.",
+      "status": "draft",
+      "trap": "upstream_no_mix",
+      "verdict": "weak",
+      "teaches": "on average",
+      "win_rate": 0.6325000000000001,
+      "gap": 0.030770715084564526,
+      "learner": null
+    },
+    {
+      "env": "lead_opt",
+      "id": "measure-well-before-you-rank",
+      "said": "Do not rank analogs on a sloppy assay.",
+      "status": "draft",
+      "trap": "upstream_raw_ratio",
+      "verdict": "blind",
+      "teaches": "no",
+      "win_rate": 0.34,
+      "gap": 0.0039105189337368396,
+      "learner": null
+    },
+    {
+      "env": "lead_opt",
+      "id": "measure-well-before-you-rank",
+      "said": "Do not rank analogs on a sloppy assay.",
+      "status": "draft",
+      "trap": "upstream_two_point",
+      "verdict": "weak",
+      "teaches": "on average",
+      "win_rate": 0.61,
+      "gap": 0.29904192562663334,
+      "learner": null
+    },
+    {
+      "env": "lead_opt",
+      "id": "measure-well-before-you-rank",
+      "said": "Do not rank analogs on a sloppy assay.",
+      "status": "draft",
+      "trap": "upstream_no_internal_standard",
+      "verdict": "blind",
+      "teaches": "no",
+      "win_rate": 0.54,
+      "gap": 0.010596698533704818,
+      "learner": null
+    },
+    {
+      "env": "lead_opt",
+      "id": "learn-from-each-round",
+      "said": "Use what each round taught you to choose the next analogs.",
+      "status": "draft",
+      "trap": "no_model",
+      "verdict": "weak",
+      "teaches": "on average",
+      "win_rate": 0.895,
+      "gap": 0.18533849915587675,
+      "learner": null
+    },
+    {
+      "env": "lead_opt",
+      "id": "iterate",
+      "said": "Run more than one design-make-test round before nominating.",
+      "status": "draft",
+      "trap": "one_round",
+      "verdict": "visible",
+      "teaches": "yes",
+      "win_rate": 0.915,
+      "gap": 0.265257706866201,
+      "learner": null
+    }
+  ]
+}

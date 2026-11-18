@@ -1,7 +1,7 @@
 """Physical layer: plates, a liquid handler and a plate reader with explicit error sources.
 
 Every environment runs its protocol through this layer, so an agent's choices (volumes, mixing,
-tips, lids, layout) change the data the same way they would at the bench.
+tips, lids, layout) change the data through the same mechanisms as at the bench, with assumed magnitudes.
 
 Every number in RigProfile is an assumed order-of-magnitude default, NOT a measurement.
 Replace the pipetting terms with your own QC through RigProfile.from_qc before trusting a
@@ -159,7 +159,8 @@ class Rig:
             return 0.0
         return max(0.0, v * (1 + self.p.pipette_bias(v)) * (1 + self.rng.normal(0.0, self.p.pipette_cv(v))))
 
-    def fill(self, plate: Plate, w, v: float, solutes: dict[str, float] | None = None, cv: float = 0.02) -> None:
+    def fill(self, plate: Plate, w, v: float, solutes: dict[str, float] | None = None, cv: float = 0.02,
+             what: str | None = None) -> None:
         """Bulk reagent dispenser (cells, buffer, detection mix): its own CV, no tips, jets mix."""
         got = max(0.0, v * (1 + self.rng.normal(0.0, cv)))
         plate.vol[w] += got
@@ -167,7 +168,7 @@ class Rig:
             plate.a(s)[w] += c * got
         plate.mixed[w] = True
         self.log.append({"op": "fill", "dst_plate": plate.name, "dst_well": well_name(w), "ul": v,
-                         "what": "+".join(solutes) if solutes else "buffer"})
+                         "what": what or ("+".join(solutes) if solutes else "buffer")})
 
     def transfer(self, src: Plate, sw, dst: Plate, dw, v: float, new_tip: bool = True, mix_after: bool = False) -> None:
         """Tip-based transfer with volume error, dead volume, unmixed sampling and tip carryover."""
@@ -212,10 +213,10 @@ class Rig:
         self.hours += h
         self.log.append({"op": "incubate", "dst_plate": plate.name, "minutes": minutes, "lid": bool(lid)})
 
-    def read(self, true_signal: np.ndarray) -> np.ndarray:
+    def read(self, true_signal: np.ndarray, plate: str = "assay") -> np.ndarray:
         """Plate reader: proportional noise, a row gradient, and an additive background floor."""
         noise = 1 + self.rng.normal(0.0, self.p.reader_cv, size=true_signal.shape)
         grad = 1 - self.p.row_gradient * (np.arange(ROWS)[:, None] / (ROWS - 1))
         floor = self.rng.normal(0.0, self.p.reader_floor, size=true_signal.shape)
-        self.log.append({"op": "read"})
+        self.log.append({"op": "read", "dst_plate": plate})
         return true_signal * noise * grad + floor

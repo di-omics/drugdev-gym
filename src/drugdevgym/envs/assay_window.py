@@ -74,8 +74,9 @@ class AssayWindow(Env):
         for s in STD_SERIES_NM:  # standards are added at detection, so they do not incubate
             w = next(free)
             std_wells.append((w, s))
-            rig.fill(std_plate, w, CELLS_UL + STAMP_UL, {"M": s * FINAL_UL / (CELLS_UL + STAMP_UL)})
-            rig.fill(std_plate, w, DETECT_UL)
+            rig.fill(std_plate, w, CELLS_UL + STAMP_UL, {"M": s * FINAL_UL / (CELLS_UL + STAMP_UL)},
+                     what=f"analyte standard {s:g} nM")
+            rig.fill(std_plate, w, DETECT_UL, what="detection mix")
         conc = np.where(std_plate.vol > 0, std_plate.a("M") / np.maximum(std_plate.vol, 1e-9), 0.0)
         ratio = rig.read(self.kit.ratio(conc))
         standards = [{"std_nM": s, "ratio": round(float(ratio[w]), 1)} for w, s in std_wells]
@@ -87,8 +88,9 @@ class AssayWindow(Env):
                 for role in ("neg", "pos"):
                     w = next(free)
                     wells.append((w, role))
-                    rig.fill(plate, w, CELLS_UL)
-                    rig.fill(plate, w, STAMP_UL, {"ref": 1.0} if role == "pos" else None)
+                    rig.fill(plate, w, CELLS_UL, what=f"cells {cond['cells_k']:g}k per well")
+                    rig.fill(plate, w, STAMP_UL, {"ref": 1.0} if role == "pos" else None,
+                             what="reference agonist" if role == "pos" else "vehicle")
             rig.incubate(plate, cond["stim_min"], lid)
             accumulated = 1.0 - np.exp(-cond["stim_min"] / self.tau)
             analyte = plate.a("M")
@@ -97,7 +99,7 @@ class AssayWindow(Env):
                 cellf = max(0.0, 1.0 + self._noise.normal(0.0, self.cell_cv)) * edge
                 level = self.kit.k * self.per_k * cond["cells_k"] * accumulated
                 analyte[w] = cellf * level * (1.0 if role == "pos" else self.basal_frac) * FINAL_UL
-                rig.fill(plate, w, DETECT_UL)
+                rig.fill(plate, w, DETECT_UL, what="detection mix")
             conc = np.where(plate.vol > 0, analyte / np.maximum(plate.vol, 1e-9), 0.0)
             ratio = rig.read(self.kit.ratio(conc))
             out.append({"cells_k": cond["cells_k"], "stim_min": cond["stim_min"],
@@ -135,7 +137,7 @@ class AssayWindow(Env):
                 return self._reject(f"{len(conditions)} conditions need {need} wells but the plate has {have}")
             data, rig = self._run(conditions, plate["lid"], plate["avoid_edges"], PILOT_PER_SIDE)
             self.pilots += 1
-            self.last_log = rig.log
+            self._record(rig.log)
             return ({"phase": "data", "pilot": self.pilots, **data, "cost": round(self.cost, 2),
                      "pilots_left": self.MAX_PILOTS - self.pilots}, 0.0, False, {})
         if action["type"] == "commit":
@@ -143,7 +145,7 @@ class AssayWindow(Env):
             if err:
                 return self._reject(err)
             data, rig = self._run([clean], clean["lid"], clean["avoid_edges"], VALIDATION_PER_SIDE)
-            self.last_log = rig.log
+            self._record(rig.log)
             cond = data["conditions"][0]
             z = analyte_zprime(data["standards"], cond["pos"], cond["neg"])
             z = z if np.isfinite(z) else -1.0

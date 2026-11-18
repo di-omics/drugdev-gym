@@ -19,6 +19,26 @@ of listing them is that each one is a named dial that real QC data can replace.
 | reader_cv, reader_floor | 2%, 30 ratio units | proportional and additive reader noise | repeated reads of one plate |
 | row_gradient | 4% A to H | signal drift across rows | uniformity plate |
 
+## Assay, compound and LC-MS constants
+
+These are assumed too, and they set how large each mistake looks.
+
+| constant | value | what it stands for | how to measure it for real |
+|---|---|---|---|
+| kit half-displacement k | 20 to 60 nM per seed | analyte at half signal in the competitive immunoassay | the kit standard curve |
+| kit ratio window | 600 to 6000 | signal at saturating and zero analyte | the kit standard curve |
+| standard series | 1 to 3000 nM, 8 points | on-plate standard curve | kit insert |
+| basal and stimulated analyte | 0.1 to 0.3 x k and 3 to 8 x k | where the cell response sits on the curve; this ratio sets the size of the raw-ratio error | controls back-calculated on a real plate |
+| cell-number CV | 4 to 8% (4 to 10% in assay_window) | well-to-well cell variation | uniformity plate |
+| compound pEC50, Emax, Hill | 5.5 to 9.5, 0.6 to 1.0, 0.8 to 1.3 | hidden potency truth | not measurable in advance; set from public potency distributions |
+| compound stickiness | log-normal, median 2 | multiplier on tip carryover | carryover test per compound class |
+| cell-line productivity (assay_window) | 0.02 to 5 x k per 1000 cells | how much analyte a cell line makes | cell titration |
+| half-life | 5 to 2000 min, log-uniform | hidden stability truth | set from public stability distributions |
+| MS response variability | 18% log-scale | lumped sample-to-sample variability without an internal standard (matrix effect, recovery, drift), not injection repeatability alone | repeat injections and repeat extractions |
+| internal-standard noise | 3% | residual after normalisation | same |
+| detector noise floor | 0.4% of the time-zero area | sets the limit of quantification; the analysis default drops points under 2% | blank injections |
+| reward tolerance | 0.5 log units | error at which credit reaches zero | minimum significant ratio of the real assay |
+
 ## Known simplifications
 
 - A well is either mixed or not; unmixed sampling applies the same recovery to every solute.
@@ -32,7 +52,7 @@ of listing them is that each one is a named dial that real QC data can replace.
   no cytotoxicity, no receptor desensitisation, no compound solubility limit.
 - Detection is one competitive TR-FRET immunoassay with slope 1.
 - Stability is single-phase first-order decay; no protein binding, no non-specific loss to plastic,
-  no matrix lot effect. LC-MS is a log-normal injection factor plus a noise floor.
+  no matrix lot effect. LC-MS is one lumped log-normal response factor per sample plus a noise floor.
 - The lead-optimization landscape is additive with one pairwise term, 625 analogs. Real SAR is rougher.
 - Costs are round numbers that only set the relative price of wells, tips, samples, and synthesis.
 

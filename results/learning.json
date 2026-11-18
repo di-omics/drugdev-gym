@@ -5,63 +5,63 @@
       "curve": [
         {
           "iteration": 1,
-          "population_mean": 0.11589131227549951,
-          "elite_mean": 0.45460902443650025
+          "population_mean": 0.0961445485584544,
+          "elite_mean": 0.4143169161329328
         },
         {
           "iteration": 2,
-          "population_mean": 0.13980121086122732,
-          "elite_mean": 0.544232194536428
+          "population_mean": 0.12966936209673682,
+          "elite_mean": 0.542573571107916
         },
         {
           "iteration": 3,
-          "population_mean": 0.22312227005389254,
-          "elite_mean": 0.5565118880733376
+          "population_mean": 0.1913462567713133,
+          "elite_mean": 0.5429640596761196
         },
         {
           "iteration": 4,
-          "population_mean": 0.2568065071203954,
-          "elite_mean": 0.5805430707343369
+          "population_mean": 0.23803482324622588,
+          "elite_mean": 0.5871151109386037
         },
         {
           "iteration": 5,
-          "population_mean": 0.28764820087996357,
-          "elite_mean": 0.6231220606149572
+          "population_mean": 0.3160297735836153,
+          "elite_mean": 0.6532695213532458
         },
         {
           "iteration": 6,
-          "population_mean": 0.3775808594966211,
-          "elite_mean": 0.6569545726756887
+          "population_mean": 0.4068249641573072,
+          "elite_mean": 0.6903130466457919
         },
         {
           "iteration": 7,
-          "population_mean": 0.4225182250624768,
-          "elite_mean": 0.6975364693876144
+          "population_mean": 0.3937646568356998,
+          "elite_mean": 0.6802182016984277
         },
         {
           "iteration": 8,
-          "population_mean": 0.514067983531203,
-          "elite_mean": 0.7097454286450295
+          "population_mean": 0.5560428335981039,
+          "elite_mean": 0.7213644945819695
         },
         {
           "iteration": 9,
-          "population_mean": 0.4824241188559563,
-          "elite_mean": 0.724062105614206
+          "population_mean": 0.47082307193662887,
+          "elite_mean": 0.7319524747003916
         },
         {
           "iteration": 10,
-          "population_mean": 0.580255419359367,
-          "elite_mean": 0.7400966491373515
+          "population_mean": 0.5937737563606927,
+          "elite_mean": 0.7417963641589349
         },
         {
           "iteration": 11,
-          "population_mean": 0.47531226958035094,
-          "elite_mean": 0.7147117845565358
+          "population_mean": 0.5296295701562871,
+          "elite_mean": 0.7455398275865932
         },
         {
           "iteration": 12,
-          "population_mean": 0.5934443148416075,
-          "elite_mean": 0.7497011324500136
+          "population_mean": 0.5865493116300848,
+          "elite_mean": 0.7512372592398623
         }
       ],
       "design": {
@@ -83,77 +83,77 @@
       "curve": [
         {
           "iteration": 1,
-          "population_mean": 0.11446318353749954,
-          "elite_mean": 0.42354098248539873
+          "population_mean": 0.08859249354705694,
+          "elite_mean": 0.37902103778950946
         },
         {
           "iteration": 2,
-          "population_mean": 0.11766404453976494,
-          "elite_mean": 0.4661487496570705
+          "population_mean": 0.09135956278684597,
+          "elite_mean": 0.44206005614075006
         },
         {
           "iteration": 3,
-          "population_mean": 0.2015531536060829,
-          "elite_mean": 0.49939409133581697
+          "population_mean": 0.1783957114117992,
+          "elite_mean": 0.49888428436412213
         },
         {
           "iteration": 4,
-          "population_mean": 0.282625093668757,
-          "elite_mean": 0.5730829090912708
+          "population_mean": 0.24541830952587484,
+          "elite_mean": 0.5352347917806991
         },
         {
           "iteration": 5,
-          "population_mean": 0.33491673560231505,
-          "elite_mean": 0.6385632626827982
+          "population_mean": 0.2656403345399185,
+          "elite_mean": 0.5930324482539133
         },
         {
           "iteration": 6,
-          "population_mean": 0.402588152662943,
-          "elite_mean": 0.6780498630513427
+          "population_mean": 0.35675575899785655,
+          "elite_mean": 0.6502535260868736
         },
         {
           "iteration": 7,
-          "population_mean": 0.4104319830888949,
-          "elite_mean": 0.66803335523442
+          "population_mean": 0.4033747665167602,
+          "elite_mean": 0.6735863411298575
         },
         {
           "iteration": 8,
-          "population_mean": 0.4550709023071782,
-          "elite_mean": 0.7297414602960026
+          "population_mean": 0.37376509731643753,
+          "elite_mean": 0.723925722305203
         },
         {
           "iteration": 9,
-          "population_mean": 0.45569907793961895,
-          "elite_mean": 0.7060304972231755
+          "population_mean": 0.44808556595333277,
+          "elite_mean": 0.723198571256517
         },
         {
           "iteration": 10,
-          "population_mean": 0.49735601023982373,
-          "elite_mean": 0.7139522453865315
+          "population_mean": 0.49460482629136493,
+          "elite_mean": 0.7423360400232644
         },
         {
           "iteration": 11,
-          "population_mean": 0.5348211315632867,
-          "elite_mean": 0.7599556694564593
+          "population_mean": 0.44089719395590443,
+          "elite_mean": 0.749652100524912
         },
         {
           "iteration": 12,
-          "population_mean": 0.5627866588745485,
-          "elite_mean": 0.7375183687867625
+          "population_mean": 0.5270325360653436,
+          "elite_mean": 0.7507583822045849
         }
       ],
       "design": {
-        "top_conc_nM": 10000.0,
+        "top_conc_nM": 30000.0,
         "dilution_factor": 10.0,
         "n_points": 8,
         "replicates": 1,
         "transfer_ul": 25.0,
         "mix": true,
         "new_tips": true,
-        "avoid_edges": true,
+        "avoid_edges": false,
         "lid": false,
         "standards": true,
-        "controls_per_side": 4
+        "controls_per_side": 8
       }
     }
   },
@@ -166,15 +166,15 @@
     },
     {
       "design": "learned_on_randomized",
-      "nominal": 0.7056641930831663,
-      "randomized": 0.6741347206011565,
-      "harsh": 0.5306637513541547
+      "nominal": 0.7500482846864408,
+      "randomized": 0.7288528433559409,
+      "harsh": 0.6725951293870633
     },
     {
       "design": "expert",
       "nominal": 0.6988894173729654,
       "randomized": 0.6761926973438088,
-      "harsh": 0.5299883821670237
+      "harsh": 0.5204527463450526
     }
   ]
 }

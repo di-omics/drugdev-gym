@@ -1,6 +1,6 @@
 """Reference policies: one expert per environment, named bench mistakes ("traps"), and a null.
 
-A trap is the expert protocol with exactly one mistake a real bench makes. Environment QC
+A trap is the expert protocol with one named mistake a real bench makes. Environment QC
 (envqc.py) then measures whether the reward can tell the expert from each trap. A policy is
 any object with act(observation) -> action.
 """
@@ -56,6 +56,26 @@ class DosePolicy:
         return {"type": "report", "pEC50": {}}
 
 
+class GateBypass:
+    """A known exploit of the dose_response reward, kept on the QC card so it stays visible.
+
+    Answer from a plate with no controls, then run a cheap token plate that has controls and
+    declare it as the plate the answer rests on. The QC gate only sees the declared plate.
+    """
+
+    def __init__(self):
+        self.answer: dict = {}
+
+    def act(self, obs: dict) -> dict:
+        if obs.get("phase") == "start":
+            return {"type": "run_plate", "design": {**DR_EXPERT, "controls_per_side": 0}}
+        if obs.get("phase") == "data" and obs["plate"] == 1:
+            self.answer = estimate_pec50(obs["wells"], True)
+            token = {**DR_EXPERT, "n_points": 4, "standards": False, "new_tips": False, "controls_per_side": 8}
+            return {"type": "run_plate", "design": token}
+        return {"type": "report", "pEC50": self.answer, "plates_used": [2]}
+
+
 def random_dr_design(rng: np.random.Generator) -> dict:
     return {k: v[int(rng.integers(len(v)))] for k, v in DR_CHOICES.items()}
 
@@ -68,13 +88,15 @@ DOSE_RESPONSE = {
     "expert": _dr(),
     "no_mix": _dr(mix=False),
     "reuse_tips": _dr(new_tips=False),
-    "open_edges": _dr(avoid_edges=False, lid=False),
+    "edge_wells": _dr(avoid_edges=False),
+    "no_lid": _dr(lid=False),
     "raw_ratio": lambda seed: DosePolicy({**DR_EXPERT, "standards": False}, use_standards=False),
-    "narrow_range": _dr(top_conc_nM=1000.0, dilution_factor=2.0, n_points=8),
+    "narrow_range": _dr(top_conc_nM=1000.0, dilution_factor=2.0, n_points=8, transfer_ul=40.0),
     "thin_ladder": _dr(transfer_ul=5.0),
     "few_controls": _dr(controls_per_side=2),
     "random": lambda seed: DosePolicy(random_dr_design(np.random.default_rng([seed, 99]))),
     "null": lambda seed: DosePolicy(None),
+    "gate_bypass": lambda seed: GateBypass(),
 }
 
 # ---------------------------------------------------------------- stability
@@ -118,7 +140,9 @@ STABILITY = {
     "early_only": _st(timepoints_min=[0, 5, 10, 15, 20, 30]),
     "no_internal_standard": _st(internal_standard=False),
     "no_mix": _st(mix_after_spike=False),
-    "open_edges": _st(lid=False, avoid_edges=False),
+    "edge_wells": _st(avoid_edges=False),
+    "no_lid": _st(lid=False),
+    "no_lid_on_edge_wells": _st(lid=False, avoid_edges=False),  # the two together: an interaction
     "single_replicate": _st(replicates=1),
     "no_lloq": lambda seed: StabilityPolicy(dict(ST_EXPERT), use_lloq=False),
     "random": _random_st,
@@ -129,7 +153,8 @@ STABILITY = {
 
 
 class WindowSearch:
-    """Coarse cell-density pilot, a refining pilot around the best, then commit the best seen.
+    """Coarse cell-density pilot, a refining pilot around a chemistry-guided centre, then commit the
+    best condition of the refining pilot.
 
     metric="analyte" scores each condition by Z' after back-calculation through the standard
     curve; metric="raw" scores the raw ratio, which is the wrong window for this assay format.
@@ -167,7 +192,7 @@ class WindowSearch:
         if obs.get("phase") == "data":
             best = max((self._score(obs, c), c["cells_k"], c["stim_min"]) for c in obs["conditions"])
             if obs["pilot"] == 1:
-                b = self._target_cells(obs) if self.metric == "analyte" else None
+                b = self._target_cells(obs)
                 b = best[1] if b is None else b
                 grid = [(b, 60.0), (b * 0.6, 60.0), (b * 1.6, 60.0), (b, 30.0), (b, 120.0)]
                 return {"type": "run_pilot", "lid": True, "avoid_edges": False,
@@ -192,7 +217,8 @@ def _random_window(seed: int) -> WindowFixed:
 
 ASSAY_WINDOW = {
     "expert": lambda seed: WindowSearch(),
-    "open_edges": lambda seed: WindowSearch(commit_lid=False, commit_avoid_edges=False),
+    "edge_wells": lambda seed: WindowSearch(commit_avoid_edges=False),
+    "no_lid": lambda seed: WindowSearch(commit_lid=False),
     "raw_ratio_zprime": lambda seed: WindowSearch(metric="raw"),
     "max_cells": lambda seed: WindowFixed(80.0, 60.0),
     "min_cells": lambda seed: WindowFixed(2.5, 60.0),
@@ -274,12 +300,14 @@ class CampaignPolicy:
 
 
 LO_DR = {**DR_EXPERT, "avoid_edges": False}  # six analogs need the outer ring
-LO_DR_SLOPPY = {**LO_DR, "mix": False, "standards": False}
-LO_ST_SLOPPY = {**ST_EXPERT, "timepoints_min": [0, 360], "internal_standard": False}
-
 LEAD_OPT = {
     "expert": lambda seed: CampaignPolicy(seed, LO_DR, True, ST_EXPERT, True),
-    "sloppy_measurement": lambda seed: CampaignPolicy(seed, LO_DR_SLOPPY, False, LO_ST_SLOPPY, True),
+    # one upstream measurement mistake each, with the campaign strategy unchanged
+    "upstream_no_mix": lambda seed: CampaignPolicy(seed, {**LO_DR, "mix": False}, True, ST_EXPERT, True),
+    "upstream_raw_ratio": lambda seed: CampaignPolicy(seed, {**LO_DR, "standards": False}, False, ST_EXPERT, True),
+    "upstream_two_point": lambda seed: CampaignPolicy(seed, LO_DR, True, {**ST_EXPERT, "timepoints_min": [0, 360]}, True),
+    "upstream_no_internal_standard": lambda seed: CampaignPolicy(seed, LO_DR, True,
+                                                                 {**ST_EXPERT, "internal_standard": False}, True),
     "no_model": lambda seed: CampaignPolicy(seed, LO_DR, True, ST_EXPERT, True, model=False),
     "one_round": lambda seed: CampaignPolicy(seed, LO_DR, True, ST_EXPERT, True, rounds=1),
     "null": lambda seed: CampaignPolicy(seed, LO_DR, True, ST_EXPERT, True, rounds=0),

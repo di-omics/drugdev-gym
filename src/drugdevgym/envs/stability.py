@@ -10,7 +10,7 @@ import numpy as np
 
 from ..analysis import response
 from ..chem import remaining
-from ..rig import Plate, Rig, RigProfile, usable_wells
+from ..rig import ROWS, Plate, Rig, RigProfile, usable_wells
 from .base import Env, log_error_score, spec_help, validate
 
 MATRIX_UL = 200.0
@@ -19,7 +19,7 @@ ALIQUOT_UL = 20.0
 QUENCH_UL = 80.0
 HORIZON_MIN = 360.0
 HL_LO, HL_HI = 5.0, 1440.0  # quantifiable range; answers and truth are clipped to it
-INJECTION_SD = 0.18  # log-scale injection-to-injection variability without an internal standard
+INJECTION_SD = 0.18  # log-scale sample-to-sample MS response variability (matrix effect, recovery, drift), lumped
 IS_SD = 0.03
 NOISE_FLOOR = 0.004  # detector noise as a fraction of the nominal time-zero area
 T0_CV_GATE = 0.15
@@ -53,10 +53,10 @@ def simulate_stability(profile: RigProfile, rng: np.random.Generator, half_lives
     nominal_t0 = 1000.0 * ALIQUOT_UL  # 1 uM in the matrix, as amount in one aliquot
     wells: list[tuple[str, int, tuple]] = []
     for k, cid in enumerate(half_lives):
-        rig.fill(stock, (k, 0), 100.0, {cid: 1000.0 * (MATRIX_UL + SPIKE_UL) / SPIKE_UL})
+        rig.fill(stock, (k, 0), 100.0, {cid: 1000.0 * (MATRIX_UL + SPIKE_UL) / SPIKE_UL}, what=f"{cid} stock")
         for rep in range(design["replicates"]):
             w = next(inc_free)
-            rig.fill(inc, w, MATRIX_UL)
+            rig.fill(inc, w, MATRIX_UL, what="matrix")
             rig.transfer(stock, (k, 0), inc, w, SPIKE_UL, new_tip=True, mix_after=design["mix_after_spike"])
             wells.append((cid, rep + 1, w))
     samples: list[dict] = []
@@ -69,7 +69,8 @@ def simulate_stability(profile: RigProfile, rng: np.random.Generator, half_lives
             clock = t
         for cid, rep, w in wells:
             q = next(quench_free)
-            rig.fill(quench, q, QUENCH_UL, {"IS": 1.0} if design["internal_standard"] else None)
+            rig.fill(quench, q, QUENCH_UL, {"IS": 1.0} if design["internal_standard"] else None,
+                     what="quench with internal standard" if design["internal_standard"] else "quench")
             rig.transfer(inc, w, quench, q, ALIQUOT_UL, new_tip=True, mix_after=True)
             injection = float(np.exp(rng.normal(0.0, INJECTION_SD)))
             area = quench.a(cid)[q] * injection + rng.normal(0.0, NOISE_FLOOR * nominal_t0)
@@ -106,6 +107,8 @@ class Stability(Env):
 
     def __init__(self, seed: int = 0, rig="nominal", n_compounds: int = 3):
         super().__init__(seed, rig)
+        if not 1 <= n_compounds <= ROWS:
+            raise ValueError(f"n_compounds must be between 1 and {ROWS}")
         self.half_lives = {f"cpd{i + 1}": float(10 ** self._truth_rng.uniform(np.log10(5.0), np.log10(2000.0)))
                            for i in range(n_compounds)}
         self.samples: list[dict] | None = None
@@ -139,7 +142,7 @@ class Stability(Env):
             if err:
                 return self._reject(err)
             self.samples, rig = simulate_stability(self.profile, self._noise, self.half_lives, design)
-            self.last_log = rig.log
+            self._record(rig.log)
             self.cost += run_cost(len(self.samples), rig.tips)
             return {"phase": "data", "samples": self.samples, "cost": round(self.cost, 2)}, 0.0, False, {}
         if action["type"] == "report":
