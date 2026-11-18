@@ -1,21 +1,19 @@
 # Expert rules: what the rewards can teach
 
-53 rules, 65 rule-trap pairs. The reward teaches 30 of them (the expert wins on at least 90% of seeds), 28 only on average, is blind to 7, and rewards the mistake in 0.
-53 of the 53 rules are drafts seeded from general bench practice and have not been reviewed by the expert yet.
+53 rules, 65 rule-trap pairs. The expert has ruled 3 of them moot; they are listed at the end and left out of the counts. Of the 62 that count, the reward teaches 30 (the expert wins on at least 90% of seeds), 27 only on average, is blind to 5, and rewards the mistake in 0.
+52 of the 53 rules are drafts seeded from general bench practice and have not been reviewed by the expert yet.
 
 | env | rule | status | trap | reward teaches it | expert wins | reward gap |
 |---|---|---|---|---|---|---|
 | dose_response | Mix after every transfer in a serial dilution. | draft | no_mix | yes | 99.5% | 0.607 |
 | dose_response | Change tips between ladder steps. | draft | reuse_tips | on average | 63.0% | 0.033 |
 | dose_response | Keep assay wells off the outer ring. | draft | edge_wells | on average | 69.5% | 0.077 |
-| dose_response | Lid the plate during the 37 C incubation. | draft | no_lid | no | 47.0% | -0.000 |
 | dose_response | Convert the ratio to analyte through the standard curve before fitting potency. | draft | raw_ratio | yes | 100.0% | 0.620 |
 | dose_response | Dose wide enough to see both plateaus when you do not know the potency. | draft | narrow_range | yes | 97.0% | 0.370 |
 | dose_response | A ladder well has to hold everything you will take out of it, plus the dead volume. | draft | thin_ladder | yes | 100.0% | 0.739 |
 | dose_response | Put enough negative and positive controls on every plate to compute a Z-prime. | draft | few_controls | yes | 99.5% | 0.349 |
 | stability | Quench into internal standard and read the analyte over it. | draft | no_internal_standard | yes | 99.0% | 0.420 |
 | stability | Mix the matrix after spiking, before the time-zero sample. | draft | no_mix | yes | 100.0% | 0.466 |
-| stability | Lid the incubation plate and stay off the outer ring for hours-long time courses. | draft | no_lid | on average | 69.0% | 0.011 |
 | stability | Lid the incubation plate and stay off the outer ring for hours-long time courses. | draft | edge_wells | on average | 66.0% | 0.007 |
 | stability | Lid the incubation plate and stay off the outer ring for hours-long time courses. | draft | no_lid_on_edge_wells | yes | 98.0% | 0.189 |
 | stability | Spread time points so both a five-minute and a five-hour half-life leave several usable points. | draft | two_point | on average | 85.5% | 0.290 |
@@ -26,7 +24,6 @@
 | assay_window | Titrate cell density; do not assume more cells or the kit default is right. | draft | min_cells | on average | 73.5% | 0.247 |
 | assay_window | Titrate cell density; do not assume more cells or the kit default is right. | draft | kit_default | on average | 67.5% | 0.118 |
 | assay_window | Judge the assay window after back-calculation, not on the raw ratio. | draft | raw_ratio_zprime | no | 49.0% | -0.000 |
-| assay_window | Validate with the lid on and off the outer ring, the way the screen will run. | draft | no_lid | no | 59.5% | 0.000 |
 | assay_window | Validate with the lid on and off the outer ring, the way the screen will run. | draft | edge_wells | on average | 80.5% | 0.055 |
 | lead_opt | Do not rank analogs on a sloppy assay. | draft | upstream_no_mix | on average | 63.3% | 0.031 |
 | lead_opt | Do not rank analogs on a sloppy assay. | draft | upstream_raw_ratio | no | 34.0% | 0.004 |
@@ -80,10 +77,19 @@ Cross-entropy learner on dose_response, one run per training rig (see learning.m
 | Mix after every transfer in a serial dilution. | yes | yes | yes |
 | Change tips between ladder steps. | on average | yes | yes |
 | Keep assay wells off the outer ring. | on average | no | no |
-| Lid the plate during the 37 C incubation. | no | no | no |
 | Convert the ratio to analyte through the standard curve before fitting potency. | yes | yes | yes |
 | Dose wide enough to see both plateaus when you do not know the potency. | yes | yes | yes |
 | A ladder well has to hold everything you will take out of it, plus the dead volume. | yes | yes | yes |
 | Put enough negative and positive controls on every plate to compute a Z-prime. | yes | yes | yes |
 
-Rediscovered: learned on nominal 6 of 8, learned on randomized 6 of 8.
+Rediscovered: learned on nominal 6 of 7, learned on randomized 6 of 7.
+
+## Ruled moot by the expert
+
+Not worth teaching, in the expert's judgment. The rows stay on the QC cards as measurements.
+
+| env | rule | trap | measured | note |
+|---|---|---|---|---|
+| dose_response | Lid the plate during the 37 C incubation. | no_lid | no | Expert verdict, 18 Nov 2026: do not care about the plate lid. Moot. |
+| stability | Lid the incubation plate and stay off the outer ring for hours-long time courses. | no_lid | on average | Expert verdict, 18 Nov 2026: do not care about the plate lid. Moot. |
+| assay_window | Validate with the lid on and off the outer ring, the way the screen will run. | no_lid | no | Expert verdict, 18 Nov 2026: do not care about the plate lid. Moot. |

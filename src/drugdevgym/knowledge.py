@@ -49,9 +49,21 @@ def load_rules(path: Path = RULES_PATH) -> list[dict]:
                 raise ValueError(f"rule {r['id']}: {trap} is not a trap of {r['env']}")
         if "check" in r and r["check"] not in CHECKS:
             raise ValueError(f"rule {r['id']}: unknown check {r['check']}")
-        if r["status"] not in ("draft", "expert"):
-            raise ValueError(f"rule {r['id']}: status must be draft or expert")
+        if r["status"] not in ("draft", "expert", "moot"):
+            raise ValueError(f"rule {r['id']}: status must be draft, expert or moot")
+        for trap in r.get("moot", []):
+            if trap not in r["traps"]:
+                raise ValueError(f"rule {r['id']}: moot names {trap}, which is not one of its traps")
     return rules
+
+
+def moot_traps(rule: dict) -> set[str]:
+    """Traps the expert has ruled not worth teaching: all of a rule with status "moot", or the ones its `moot` list names.
+
+    A moot pair stays on its QC card as a measurement, but it is left out of the counts of what the
+    reward teaches and of what a learner rediscovered. A blind row on a rule that does not matter is
+    not a gap."""
+    return set(rule["traps"]) if rule["status"] == "moot" else set(rule.get("moot", []))
 
 
 def orphan_traps(rules: list[dict]) -> list[tuple[str, str]]:
@@ -68,25 +80,30 @@ def coverage(rules: list[dict], cards: dict, learned: dict[str, dict] | None = N
     rows = []
     for r in rules:
         by_policy = {row["policy"]: row for row in cards.get(r["env"], {}).get("rows", [])}
+        moot = moot_traps(r)
         for trap in r["traps"]:
+            base = {"env": r["env"], "id": r["id"], "said": r["said"], "status": r["status"], "trap": trap,
+                    "moot": trap in moot, "note": r.get("note")}
             if trap not in by_policy:  # no card yet for this environment or trap: say so, do not guess
-                rows.append({"env": r["env"], "id": r["id"], "said": r["said"], "status": r["status"], "trap": trap,
-                             "verdict": None, "teaches": "not measured", "win_rate": None, "gap": None, "learner": None})
+                rows.append({**base, "verdict": None, "teaches": "not measured", "win_rate": None, "gap": None,
+                             "learner": None})
                 continue
             q = by_policy[trap]
-            row = {"env": r["env"], "id": r["id"], "said": r["said"], "status": r["status"], "trap": trap,
-                   "verdict": q["verdict"], "teaches": TEACHES[q["verdict"]], "win_rate": q["win_rate"],
+            row = {**base, "verdict": q["verdict"], "teaches": TEACHES[q["verdict"]], "win_rate": q["win_rate"],
                    "gap": q["gap"], "learner": None}
-            if learned and "check" in r:
+            if learned and "check" in r and trap not in moot:
                 row["learner"] = {label: bool(CHECKS[r["check"]](design)) for label, design in learned.items()}
             rows.append(row)
     return rows
 
 
 def summary(rows: list[dict]) -> dict:
-    counts = {k: sum(r["teaches"] == v for r in rows) for k, v in
+    """Counts of what the reward teaches, over the pairs that matter; moot pairs are counted apart."""
+    live = [r for r in rows if not r["moot"]]
+    counts = {k: sum(r["teaches"] == v for r in live) for k, v in
               (("yes", "yes"), ("on average", "on average"), ("no", "no"), ("inverted", TEACHES["inverted"]),
                ("not_measured", "not measured"))}
+    counts["moot"] = len(rows) - len(live)
     checked = [r for r in rows if r["learner"]]
     labels = sorted({k for r in checked for k in r["learner"]})
     found = {label: sum(r["learner"][label] for r in checked) for label in labels}
@@ -98,8 +115,11 @@ def summary(rows: list[dict]) -> dict:
 
 def markdown(rows: list[dict]) -> str:
     s = summary(rows)
+    left_out = (f" The expert has ruled {s['moot']} of them moot; they are listed at the end and left out of the counts."
+                if s["moot"] else "")
     lines = ["# Expert rules: what the rewards can teach", "",
-             f"{s['rules']} rules, {s['rule_traps']} rule-trap pairs. The reward teaches {s['yes']} of them "
+             f"{s['rules']} rules, {s['rule_traps']} rule-trap pairs.{left_out} Of the {s['rule_traps'] - s['moot']} "
+             f"that count, the reward teaches {s['yes']} "
              f"(the expert wins on at least 90% of seeds), {s['on average']} only on average, is blind to {s['no']}, "
              f"and rewards the mistake in {s['inverted']}.",
              f"{s['draft']} of the {s['rules']} rules are drafts seeded from general bench practice and have not "
@@ -107,6 +127,8 @@ def markdown(rows: list[dict]) -> str:
              "| env | rule | status | trap | reward teaches it | expert wins | reward gap |",
              "|---|---|---|---|---|---|---|"]
     for r in rows:
+        if r["moot"]:
+            continue
         if r["win_rate"] is None:
             lines.append(f"| {r['env']} | {r['said']} | {r['status']} | {r['trap']} | not measured | n/a | n/a |")
             continue
@@ -124,5 +146,12 @@ def markdown(rows: list[dict]) -> str:
             lines.append(f"| {r['said']} | {r['teaches']} | {marks} |")
         found = ", ".join(f"{label} {n} of {s['checked']}" for label, n in s["rediscovered"].items())
         lines += ["", f"Rediscovered: {found}."]
+    moot = [r for r in rows if r["moot"]]
+    if moot:
+        lines += ["", "## Ruled moot by the expert", "",
+                  "Not worth teaching, in the expert's judgment. The rows stay on the QC cards as measurements.", "",
+                  "| env | rule | trap | measured | note |", "|---|---|---|---|---|"]
+        for r in moot:
+            lines.append(f"| {r['env']} | {r['said']} | {r['trap']} | {r['teaches']} | {r['note'] or ''} |")
     lines.append("")
     return "\n".join(lines)

@@ -48,7 +48,8 @@ said = "Lid the plate during the 37 C incubation."
 why = "Open wells evaporate, fastest on the outer ring."
 traps = ["no_lid"]
 check = "lid"
-status = "draft"
+status = "moot"
+note = "Expert verdict, 18 Nov 2026: do not care about the plate lid. Moot."
 
 [[rule]]
 id = "read-through-the-standard-curve"
@@ -108,6 +109,8 @@ env = "stability"
 said = "Lid the incubation plate and stay off the outer ring for hours-long time courses."
 why = "Evaporation concentrates the later samples and hides decay; an unlidded edge well is the worst case."
 traps = ["no_lid", "edge_wells", "no_lid_on_edge_wells"]
+moot = ["no_lid"]
+note = "Expert verdict, 18 Nov 2026: do not care about the plate lid. Moot."
 status = "draft"
 
 [[rule]]
@@ -156,6 +159,8 @@ env = "assay_window"
 said = "Validate with the lid on and off the outer ring, the way the screen will run."
 why = "Edge and evaporation effects widen the controls."
 traps = ["no_lid", "edge_wells"]
+moot = ["no_lid"]
+note = "Expert verdict, 18 Nov 2026: do not care about the plate lid. Moot."
 status = "draft"
 
 [[rule]]

@@ -6,6 +6,12 @@ liquid handler can calibrate it.
 **Status: v0.1, simulation only.** Nothing here has touched hardware, cells, or compounds.
 Every physical number is an assumed default ([docs/ASSUMPTIONS.md](docs/ASSUMPTIONS.md)).
 
+**Where it is going: scale.** 1536-well plates and acoustic droplet dispensing, the format a
+lab in the loop can run at scale. Acoustic transfer has no tips, so the mistakes that matter
+change: DMSO backfill, the range a direct dilution can reach, source-plate handling, and
+evaporation from a few microlitres. The environments below run on a 96-well, tip-based rig;
+an acoustic 1536 environment is being built and will be admitted the same way as the others.
+
 ## The idea
 
 The most valuable context in drug development is in bench scientists' heads: which mistakes
@@ -17,7 +23,7 @@ model can hill-climb on, and to prove the reward is true before scaling it.
    They share one interface, every task is generated from a seed instead of written by hand,
    and `lead_opt` reuses the potency and stability simulators inside one campaign.
 2. **A physical layer under every environment.** The agent does not pick "a good protocol".
-   It picks volumes, mix steps, tips, lids, and layout, and those run on a simulated liquid
+   It picks volumes, mix steps, tips, and layout, and those run on a simulated liquid
    handler with pipetting error, dead volume, carryover, evaporation, edge effects, and
    reader noise. Mixing, concentration range, ladder volume, the standard curve, the internal
    standard and the time points win or lose through that physics. Too few controls and a
@@ -103,20 +109,24 @@ test checks every reference policy's episodes for truth field names.
 ## Expert rules: what the rewards can teach
 
 53 rules, 65 rule-trap pairs, 200 seeds each on the nominal rig
-([results/knowledge.md](results/knowledge.md)). **All 53 rules are drafts seeded from general
-bench practice. None has been reviewed by an expert yet.**
+([results/knowledge.md](results/knowledge.md)). **52 of the 53 rules are drafts seeded from
+general bench practice.** The expert has given one verdict so far, and it removed a rule:
+three pairs are ruled moot and are left out of the counts. Of the 62 pairs that count:
 
-- The reward teaches 30 pairs outright (the expert wins on at least 90% of seeds).
-- It teaches 28 only on average.
-- It is blind to 7: no lid in `dose_response` and `assay_window`, choosing conditions by
-  raw-ratio Z' in `assay_window`, skipping the standard curve or the internal standard
-  upstream inside `lead_opt`, and both forskolin decisions in `gi_camp_potency` (saturating
-  forskolin, and skipping the forskolin titration).
+- The reward teaches 30 outright (the expert wins on at least 90% of seeds).
+- It teaches 27 only on average.
+- It is blind to 5: choosing conditions by raw-ratio Z' in `assay_window`, skipping the
+  standard curve or the internal standard upstream inside `lead_opt`, and both forskolin
+  decisions in `gi_camp_potency` (saturating forskolin, and skipping the forskolin titration).
 
-A cross-entropy learner given reward alone rediscovered 6 of the 8 checkable dose-response
-rules in both of its runs. The two it missed, keeping off edge wells and lidding the plate,
-are the two the reward is weak or blind on. What the reward cannot see, the learner does
-not learn, so each blind row is a to-do for the simulator or the reward.
+A cross-entropy learner given reward alone rediscovered 6 of the 7 checkable dose-response
+rules in both of its runs. The one it missed, keeping off edge wells, is one the reward
+teaches only on average. What the reward cannot see, the learner does not learn, so each
+blind row is a to-do for the simulator or the reward.
+
+A verdict works in both directions. An expert can add a rule, and an expert can rule one
+moot (`status = "moot"`, or a `moot` list naming the traps): the row stays on its QC card as
+a measurement and stops counting as something to teach.
 
 To add knowledge: write the rule in `rules.toml`, add a trap that breaks only that rule, run
 `drugdev-gym qc` and `drugdev-gym knowledge`. Tests refuse a trap no rule explains and a
@@ -127,7 +137,7 @@ dose-response trap that breaks more than its own rule.
 Rules capture what an expert would do. The review environments capture what an expert
 would see. A run was executed from a fixed, sound protocol, possibly with one hidden
 deviation: a step done wrong (an unmixed ladder, a starved ladder, a reused tip, an unmixed
-spike, a lid left off, under-filled wells) or a condition gone wrong (weak cells, an edge
+spike, evaporation, under-filled wells) or a condition gone wrong (weak cells, an edge
 effect, reader drift, an uneven internal standard). The reviewer gets the intended protocol,
 the raw data and the known value of one reference compound, and makes one call: accept or
 repeat, and why.
@@ -167,9 +177,9 @@ their own.
 
 | environment | expert mean reward | mistakes the reward sees (expert wins >= 90% of seeds) | sees only on average | blind to |
 |---|---|---|---|---|
-| `dose_response` | 0.68 | no mixing, raw ratio instead of the standard curve, narrow range, starved ladder, too few controls (by the QC gate) | reused tips (63.0%), edge wells (69.5%) | no lid |
-| `stability` | 0.92 | no internal standard, no mixing after the spike, early-only time points, no lid on edge wells, single replicate (by the QC gate) | two time points, ignoring the limit of quantification, edge wells alone, no lid alone | none |
-| `assay_window` | 0.60 | none | max cells, min cells, kit default, edge wells | no lid, choosing by raw-ratio Z' |
+| `dose_response` | 0.68 | no mixing, raw ratio instead of the standard curve, narrow range, starved ladder, too few controls (by the QC gate) | reused tips (63.0%), edge wells (69.5%) | none |
+| `stability` | 0.92 | no internal standard, no mixing after the spike, early-only time points, uncovered outer wells, single replicate (by the QC gate) | two time points, ignoring the limit of quantification, edge wells alone | none |
+| `assay_window` | 0.60 | none | max cells, min cells, kit default, edge wells | choosing by raw-ratio Z' |
 | `lead_opt` | 0.82 | one round only | no model, upstream no mixing, upstream two-point time course | upstream raw ratio, upstream no internal standard |
 | `plate_review` | 0.94 (scripted QC rules, seeds 10000+) | none | never questioning the data, repeating everything | none |
 | `timecourse_review` | 0.88 (scripted QC rules, seeds 10000+) | none | never questioning the data, repeating everything | none |
@@ -178,14 +188,14 @@ their own.
 | `cytotox_window` | 0.83 | unmatched DMSO and no full-kill control (both by the QC gate), doses above solubility counted as exposure, "clean" reported as an exact number | short exposure, edge wells, no interference control | none |
 | `selectivity_panel` | 0.62 | off-targets dosed only over the on-target range, single-point screens, no controls, no standard curve on the off-target plates, on-target only, a window claimed past the tested range; a single-point hit reported as a curve (two changes) | raw ratio on every plate, "inactive" reported as an exact number | none |
 
+Pairs the expert has ruled moot are left out of this table; they stay on the cards.
+
 What that says, plainly:
 
 - `stability` is the tightest environment. Only three comparisons anywhere clear the strict
   bar of Z' >= 0.5 between reward distributions: the starved ladder, the single replicate
   (gate-enforced), and the stability null. The paired win rate is the fairer reading and both
   are on every card.
-- In `stability`, edge wells alone and no lid alone cost about 0.01 each; together they cost
-  0.19. The mistake is the combination.
 - `assay_window` pays on average, not per episode: the expert passes its validation gate on
   99% of seeds against 60% for the kit default, but when the default happens to work it is
   cheaper, so the expert wins 67.5% of pairs.
@@ -231,7 +241,7 @@ A cross-entropy learner over the `dose_response` protocol choices, given reward 
 - Its final designs score 0.72 and 0.75 on 100 unseen seeds, against 0.70 for the scripted
   expert. A few hundredths on 100 seeds: read it as matching the expert, not beating it.
 - Both designs mix, use fresh tips, the standard curve, 8 controls a side, enough ladder
-  volume and a wide range. Both dropped the lid and use edge wells.
+  volume and a wide range. Both use edge wells.
 - Both chose 10-fold dilution steps, which no bench scientist would pick for curve
   definition. I have not pinned down why the simulator favours it, so treat it as a
   simulator artifact until shown otherwise.
@@ -333,8 +343,8 @@ A failed gate is a result. Each held environment names the rule its reward canno
   question for instrument QC data.
 - Rewards use a 0.5 log tolerance (0.3 for time-course review) chosen by hand, not from real assay
   reproducibility. Review labels are a hard cut at that tolerance, so some sit close to it.
-- Lids and edge wells barely matter in the one-hour assays as simulated; that is a gap in
-  the simulator, not a finding about lids.
+- Edge wells barely matter in the one-hour assays as simulated; that is a gap in the
+  simulator, not a finding about edge wells.
 - The package is open, so anyone holding a task id can recompute its hidden truth. A
   held-out evaluation needs private seeds from a wide range, and a blind human study needs
   opaque case ids or answers frozen at export.
@@ -343,7 +353,8 @@ A failed gate is a result. Each held environment names the rule its reward canno
 
 ## Roadmap
 
-- Expert review of the 53 draft rules, and new rules in the expert's own words.
+- Scale: the acoustic 1536 environment, then the other formats rebuilt on that rig.
+- Expert review of the 52 draft rules, and new rules in the expert's own words.
 - A human expert reference for the review environments.
 - More environments: PK, solubility, hit triage, and antagonist potency, held on its branch (above).
   Each must ship with its card.
