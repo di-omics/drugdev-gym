@@ -69,6 +69,22 @@ These are assumed too, and they set how large each mistake looks.
 | injection cycle | 3 min per sample, plate order, SGF plate first | how long each quenched sample waits in the queue after the hold | the LC-MS method and sequence table |
 | GI quantifiable range and horizon | 1 to 960 min; incubation up to 240 min | reported and true half-lives are clipped to the range before scoring | assay validation with slow and fast reference peptides |
 | fresh enzyme preparation | 20 cost units per fluid | what dissolving enzyme for one run costs, next to 2 per LC-MS sample | enzyme price and bench time |
+| selectivity_panel: plate budget | 6 plates | one plate per target (one on-target, four off-targets) plus one spare for a repeat. With four compounds the budget never binds: all four fit on one 10-point curve plate per target, so the budget only forbids an uncovered panel (two wasted plates leave an off-target untested) and a full screen-then-curve plan (9 plates), and one curve plate per target is the only sensible plan. On the nominal rig the expert used exactly 5 plates on all 400 seeds measured and its gate never failed, so the spare was never used. Eight compounds would make the budget bind; that is a different environment and was not built | the campaign's real plate and cell budget |
+| selectivity_panel: cost reference | 600 | 100 per budgeted plate, the same proportion as dose_response; the expert's five plates cost about 0.10 of reward | a real price list |
+| selectivity_panel: on-target pEC50 | 7.0 to 9.0, uniform | hidden potency of a lead at its own target | the project's potency table |
+| selectivity_panel: off-target margin | 3.0 to 8.0 log units below the on-target, uniform, independent per off-target | most off-targets are weak or inactive: 74% of compound and off-target pairs sit below the labware limit | panel data on a real series |
+| selectivity_panel: liability rate and margin | 0.3; 0.0 to 2.0 log units below the on-target | a minority of compounds carry one close off-target | the same panel data |
+| selectivity_panel: off-target efficacy, slope and cell lines | same ranges as the on-target (Emax 0.6 to 1.0, Hill 0.8 to 1.3 per target; each cell line draws its own unstimulated and stimulated level and cell CV; one kit lot for all five) | every off-target hit is an agonist read like the on-target | full curves and controls on each off-target line |
+| selectivity_panel: labware top concentration | 100000 nM, a pEC50 floor of 4.0 | the highest final dose, so the widest window an episode can show is on-target pEC50 minus 4 | solubility and cell health at the top dose |
+| selectivity_panel: tolerance | 0.5 log units of window error | the repository's reward tolerance, applied to the window and to how far a bound sits from the labware limit | minimum significant ratio of the two assays combined |
+| selectivity_panel: support margin | 0.5 log units | how far a claimed window may exceed the tested-range limit before it counts as unsupported | a reporting policy, to set with the project |
+| selectivity_panel: claim penalty | -0.5 per compound, and no floor on the mean | an unsupported or false claim of selectivity is worse than no answer, and a report made of such claims scores below no report. A failed QC gate halves credit, never a penalty. The floor at 0 was removed after the first card | a reporting policy |
+| selectivity_panel: false-claim margin | 1.0 log unit | how far a claimed window may exceed the true window before it scores -0.5 instead of 0, whatever range was tested. Added after the first card at the size the review proposed; see What the rewards do and do not claim | how much overstated selectivity a project can absorb |
+| selectivity_panel: plate QC | 3 controls a side, Z' 0.5 | the dose_response gate, per plate. Each compound and target pair rests on one plate: its QC-passing plate with the highest top dose, or its highest-dose plate of any kind when none passes. Support and gate are read from that plate, so a follow-up plate can add support and never takes it away from a pair that already has a QC-passing plate. Changed after the first card, which used the latest plate of each pair | n/a |
+| selectivity_panel: accepted report range | -12 to 12 log units | input validation only, wider than any possible window | n/a |
+| ACTIVE_FRACTION (analysis.estimate_potency) | 0.5 of the control window | a response under this at every dose is called "greater than the top dose" instead of fitted | bench convention; check it against partial agonists |
+| POTENCY_FIT_STEP (analysis.estimate_potency) | 0.05 log units | grid resolution of the midpoint search; 0.02 moved the expert's mean reward by 0.003 on 150 seeds | numerical, not physical |
+| selectivity_panel: reference protocol and the sizes of its mistakes | the expert's plates are the dose_response expert protocol with the top dose set to 3000 nM on-target and 100000 nM off-target. Traps: off-target top dose 3000 nM; a bound stated 1.0 log unit past the tested range; a single point is one well per compound at the top dose; no standard curve on the off-target plates. One labelled interaction: the single point plus a report that reads an active well as a potency at the dose tested. The null claims "at least 2.0" untested; the random policy draws its plates from SP_CHOICES in policies.py and claims a window drawn uniformly from 0 to 5, bound or number at random, for every compound | how large each reference mistake is | review with the expert |
 
 ## Planted deviations in the review environments
 
@@ -157,6 +173,31 @@ its own internal-standard level (sd 0.3), so absolute peak area carries no infor
 - gi_camp_potency is salted like the review environments. Its first card was measured before the salt was
   added, on other hidden draws from the same ranges, so every number quoted for it here was measured again
   afterwards.
+- selectivity_panel: a plate carries one cell line. There is no solubility limit, no cytotoxicity and no
+  assay interference at 100 uM, which is what limits the top dose of a real panel. Off-target margins are
+  independent across the four off-targets and unrelated to structure. Nothing responds more than the
+  reference agonist and nothing less than 0.6 of it, so there are no antagonists, no silent binders and no
+  weak partial agonists; analysis.estimate_potency leans on both (see its docstring).
+- selectivity_panel: the reward judges support on the nominal top concentration of the plate a pair rests on.
+  A plate the compound never reached (a starved ladder) still counts as tested. A token plate with controls at
+  the same top dose also satisfies the gate for a pair whose real plate failed QC: one off-target curve plate with
+  2 controls a side scores 0.27, and adding a single-point token plate with 3 controls lifts it to 0.63 (seeds
+  60000 to 60199, found in re-review). One spare plate covers one target, and a plate with 3 or more controls
+  never failed QC for the expert, so a rule-following agent gains nothing; it is the same kind of hole as
+  gate_bypass in dose_response and it is not registered as a policy. What catches the false
+  "inactive" it produces is the false-claim rule, and only where the truth is more than a log unit below the
+  claim. A 5 uL ladder transfer on the off-target plates (measured, not registered as a trap) scores 0.09
+  against 0.63 for the expert on seeds 40000 to 40199 and the expert wins 98% of pairs, because its bounds on
+  close liabilities score -0.5; its false bound on a weak off-target within a log unit of the labware limit
+  still scores 0.
+- selectivity_panel: a true bound earns credit only within 0.5 log units of the labware limit. That is a rule,
+  not physics: nothing in the simulator limits the top dose, so dosing to 100 uM is free and always right.
+  Off-target plates topped at 50 uM score 0.39, at 30 uM 0.24 and at 10 uM 0.15, against 0.63 for the expert
+  (seeds 40000 to 40199). A true bound from 30 uM or below earns the same as no answer.
+- selectivity_panel: a pair with a QC-failing plate at a high top dose and a passing plate at a lower one rests
+  on the passing plate, whichever was run first. Adding that passing low-dose plate moves the pair from "supported
+  to the high dose, reward halved" to "gate passes, supported to the low dose", and a claim left at the high
+  dose then scores -0.5. The spec states the rule; the remedy is the repeat at the high dose.
 
 ## What the rewards do and do not claim
 
@@ -198,3 +239,69 @@ its own internal-standard level (sd 0.3), so absolute peak area carries no infor
   enzyme, and the rules on fresh enzyme and enzyme decay were reworded to the mechanism that was measured. The review
   fixes changed no physical constant and nothing in the expert's protocol or analysis. The card and the measurements
   quoted above are from after these changes; the two build-report numbers are from before the salt.
+- The selectivity_panel expert's analysis was changed after its first measurement. As first written,
+  analysis.estimate_potency fitted a free 4-parameter curve to every compound and only then asked whether
+  the top dose was active; on seeds 0 to 199 that expert scored 0.531. Three choices were then added, on
+  seeds 1000 to 1199: (1) no potency is reported unless the response reaches half the control window, because
+  the foot of an incomplete curve was being fitted with a midpoint inside the tested range; (2) "reaches" means
+  at any dose, not only the top one, because noise at the top dose was turning complete partial-agonist curves
+  into bounds; (3) the fitted plateau is held at or below the positive control (fit_4pl_capped), because the
+  free fit of an incomplete curve put the plateau several control windows high and the midpoint past the top
+  dose. All three are ordinary bench conventions, but they were chosen after looking, and the third relies on
+  the simulator having no response above the reference agonist. No simulator constant, reward constant or trap
+  size was changed in that round; the reward rule changed later, after review (the next items).
+- selectivity_panel changed after its first card. That card, on seeds 0 to 199, read expert 0.621, null 0.000,
+  five traps visible or clean and two weak. An adversarial review then found four holes in the reward, and the
+  fixes are the ones it proposed:
+  (1) Quality is no longer floored at 0, and a failed gate halves credit but not a penalty. Before, a report
+  made only of unsupported claims scored the same as no report (0.000 with nothing run); it now scores -0.500.
+  (2) Support and gate rest, per compound and target pair, on the QC-passing plate with the highest top dose
+  instead of the latest plate. Before, a sixth plate that re-tested one off-target at 3 uM took the expert from
+  0.625 to 0.009 with its report unchanged; it now costs only its price (0.605).
+  (3) A claim more than 1.0 log unit above the true window scores -0.5. Before, calling a compound selective
+  against the agent's own off-target curve cost nothing. The labware-limit bound claimed for every compound
+  without reading the off-target data scored 0.30 on token screens; it now scores 0.12 there and 0.06 on full
+  curves.
+  (4) A compound never tested on the on-target has no supported window. Before, four token off-target screens
+  and "exactly 3.5" for every compound scored 0.18 with the gate passing; they now score -0.52.
+  The "before" numbers are the review's and the "after" numbers were measured again, all on seeds 40000 to 40199.
+- The 1.0 in (3) is a constant chosen after a measurement, and not by the builder. The review sized it on
+  seeds 40000 to 40199 so that no honest claim there is touched: the expert's largest overstatement on those
+  seeds is +0.85 and on_target_range's is +0.93. It is not clear of the expert everywhere. On seeds 50000 to
+  51999 it penalises 6 of 7994 expert claims and on seeds 1000 to 1199 1 of 800. Every one is an off-target
+  partial agonist (Emax 0.60 to 0.65, pEC50 5.0 to 5.4): six were called inactive by the expert's
+  half-of-the-control-window rule, the limit already listed for analysis.estimate_potency, and one was fitted
+  0.9 log units too weak. Those claims scored 0 before and -0.5 now. The margin was not adjusted after these
+  counts.
+- In the same round the card gained two rows and the random policy a report. no_standards leaves the standard
+  curve off the off-target plates, the one-field form of the raw-ratio mistake. single_point_as_curve is the
+  single point plus a report that reads an active well as a potency at the dose tested; it is two changes and
+  is registered as a labelled interaction, like the one in gi_fluid_stability. The random policy used to report
+  nothing (0 claims in 800 on the review's seeds), so its row measured plate cost only; it now claims a window
+  for every compound. Two rules were reworded to the mechanism that was measured (off-target dose range and
+  analyte units). Nothing in the expert's protocol or analysis, no simulator constant and no trap size changed
+  in this round. After it, on seeds 0 to 199: expert 0.621, null -0.500, seven trap rows visible or clean (six
+  single mistakes and the labelled interaction), two weak, none blind or inverted.
+- The selectivity_panel null row is the untested claim and scores -0.5. An empty report scores 0.0 without
+  running a plate, and that, not the null row, is the floor a do-nothing agent can reach.
+- What the selectivity_panel reward sees of each rule. Two rows are weak because of how the mistake acts, not
+  because the reward misses it. raw_ratio shifts the on-target and the off-target fits by almost the same
+  amount (0.55 and 0.57 log units on seeds 40000 to 40199), so measured windows barely move; most of the loss
+  is in compounds with nothing measurable (mean score 0.10 against 0.77 for the expert), where 123 of 268 get a
+  number instead of a bound and 101 claims (94 bounds and 7 numbers) are pushed past the tested range by the
+  on-target shift alone. That cancellation holds
+  only because all five cell lines sit on the same part of one kit's standard curve. inactive_as_number ties
+  the expert on 30 of those 200 seeds (on 21 of them no compound gets a bound) and beats it on 13, each time
+  through a compound whose true window lies within 0.35 log units of the labware limit, where the limit
+  written as a number is nearly right. Four of the visible or clean rows are punished by a rule and not by
+  the simulated data: no_controls and on_target_only score about -0.08 and -0.10 because the expert's own
+  analysis refuses to state a window without a control window or a full panel, so they pay the plate cost and
+  report next to nothing; claim_past_range is punished by the support rule; and on_target_range by the rule
+  that a bound earns credit only near the labware limit (570 of its 597 bounds are true and all 597 score 0).
+  single_point and no_standards lose through the data: the first cannot give a potency for an active well,
+  the second reads every off-target curve 0.57 log units too potent. A policy that skips the judgment but not all of the work still earns
+  something: single-point screens, one follow-up curve and guessed windows for the remaining hits score 0.45
+  against 0.63 for the expert on seeds 40000 to 40199, and the expert wins 74% of pairs. Only overstated
+  selectivity is penalised, so a guessed low window on a single-point hit earns guess credit: "exactly 0.75" for
+  every active well scores 0.32 against 0.24 for no answer and is never worse (seeds 60000 to 60199, found in
+  re-review). The single_point row is the honest form of that plan, not its best-scoring report.

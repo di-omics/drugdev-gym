@@ -331,3 +331,162 @@ def estimate_pec50_anchored(wells: list[dict], use_standards: bool = True, ancho
             continue
         out[cid] = 9.0 - fit["logec50"]
     return out
+
+
+ACTIVE_FRACTION = 0.5  # fraction of the control window a response must reach before a potency is reported
+POTENCY_FIT_STEP = 0.05  # log10 grid step of the midpoint search in estimate_potency (numerical resolution, not physics)
+
+
+def fit_4pl_capped(logx, y, top_max: float, step: float = 0.02, pad: float = 1.0):
+    """fit_4pl with the high-dose plateau held at or below top_max. Same return fields.
+
+    When a rising curve does not reach its plateau inside the tested range, the free fit can put
+    the plateau far above anything the assay can produce and the midpoint far beyond the last
+    dose. Holding the plateau at or below a known ceiling (the positive-control level) keeps the
+    midpoint where the data are. It assumes nothing responds more than that ceiling.
+    """
+    logx, y = np.asarray(logx, float), np.asarray(y, float)
+    ok = np.isfinite(logx) & np.isfinite(y)
+    logx, y = logx[ok], y[ok]
+    if len(y) < 4 or np.ptp(logx) == 0:
+        return None
+    mids = np.arange(logx.min() - pad, logx.max() + pad + step, step)
+    hills = np.arange(0.5, 2.51, 0.1)
+    m, h = np.meshgrid(mids, hills, indexing="ij")
+    g = 1.0 / (1.0 + 10.0 ** (h[..., None] * (m[..., None] - logx)))
+    a11 = ((1 - g) ** 2).sum(-1) + 1e-9
+    a22 = (g ** 2).sum(-1) + 1e-9
+    a12 = ((1 - g) * g).sum(-1)
+    b1 = ((1 - g) * y).sum(-1)
+    b2 = (g * y).sum(-1)
+    det = a11 * a22 - a12 ** 2
+    det = np.where(np.abs(det) < 1e-12, 1e-12, det)
+    bottom = (b1 * a22 - b2 * a12) / det
+    top = (a11 * b2 - a12 * b1) / det
+    over = top > top_max  # the free plateau is above the ceiling: hold it there and solve the other plateau
+    bottom = np.where(over, (b1 - top_max * a12) / a11, bottom)
+    top = np.where(over, top_max, top)
+    sse = ((y - (bottom[..., None] * (1 - g) + top[..., None] * g)) ** 2).sum(-1)
+    i, j = np.unravel_index(np.argmin(sse), sse.shape)
+    sst = float(((y - y.mean()) ** 2).sum())
+    return {"bottom": float(bottom[i, j]), "top": float(top[i, j]), "logec50": float(m[i, j]),
+            "hill": float(h[i, j]), "sse": float(sse[i, j]),
+            "r2": 1.0 - float(sse[i, j]) / sst if sst > 0 else 0.0,
+            "at_edge": bool(i == 0 or i == len(mids) - 1)}
+
+
+def _control_scale(wells: list[dict], use_standards: bool):
+    """The conversion to the fitting unit, the mean negative control and the control window in that unit.
+
+    The last two are None when the plate has no negative or no positive controls, or no window.
+    """
+    std = [(w["std_nM"], w["ratio"]) for w in wells if w["role"] == "std"]
+    curve = None
+    if use_standards and len(std) >= 4:
+        curve = fit_4pl(np.log10([s for s, _ in std]), [r for _, r in std], step=POTENCY_FIT_STEP)
+
+    def convert(ratios):
+        ratios = np.array(ratios, float)
+        return invert_4pl(curve, ratios) if curve is not None else ratios
+
+    neg = [w["ratio"] for w in wells if w["role"] == "neg"]
+    pos = [w["ratio"] for w in wells if w["role"] == "pos"]
+    if not neg or not pos:
+        return convert, None, None
+    low = float(convert(neg).mean())
+    window = float(convert(pos).mean()) - low
+    if not np.isfinite(window) or window == 0:
+        return convert, None, None
+    return convert, low, window
+
+
+def activity_fraction(wells: list[dict], use_standards: bool = True) -> dict[str, dict[float, float]]:
+    """Response of each compound at each tested concentration, as a fraction of the control window.
+
+    0 is the mean negative control and 1 the mean positive control, after conversion to analyte
+    through the on-plate standard curve when use_standards is set (raw ratio otherwise, or when
+    the plate carries no standards). Replicate wells are averaged. Concentrations run from high
+    to low. Returns {} when the plate has no control window to scale by.
+    """
+    convert, low, window = _control_scale(wells, use_standards)
+    if window is None:
+        return {}
+    out: dict[str, dict[float, float]] = {}
+    for cid in sorted({w["id"] for w in wells if w["role"] == "cpd"}):
+        pts = [(float(w["conc_nM"]), w["ratio"]) for w in wells if w["role"] == "cpd" and w["id"] == cid]
+        frac = (convert([r for _, r in pts]) - low) / window
+        conc = np.array([c for c, _ in pts])
+        out[cid] = {float(c): float(frac[conc == c].mean()) for c in sorted(set(conc.tolist()), reverse=True)}
+    return out
+
+
+def estimate_potency(wells: list[dict], use_standards: bool = True) -> dict[str, dict]:
+    """One call per compound from one plate: a potency, or a plain statement that there is none.
+
+    {"below": L, "top_nM": t}  the response stays under ACTIVE_FRACTION of the control window at
+                               every tested concentration: the pEC50 is below L = 9 - log10(t),
+                               t being the highest concentration. This is a bound, not a number.
+                               No curve is fitted: the foot of an incomplete curve can be fitted
+                               with a midpoint inside the range and mean nothing.
+    {"pEC50": v, "top_nM": t}  the response reaches ACTIVE_FRACTION of the control window, and a
+                               4-parameter curve (4 or more concentrations, the same checks as
+                               estimate_pec50, plateau held at or below the positive control) has
+                               its midpoint inside the tested range.
+    {"above": L, "top_nM": t}  the response reaches ACTIVE_FRACTION of the control window but there
+                               is no such curve (a single-point hit, or a midpoint outside the
+                               tested range): active, potency not determined.
+
+    Without controls on the plate there is no window to scale by: a compound then gets a pEC50
+    when its free 4-parameter curve passes the checks, and is left out otherwise. With
+    use_standards the ratios are converted to analyte through the on-plate standard curve first.
+
+    Limits of the rule: a partial agonist that plateaus under ACTIVE_FRACTION of the control response
+    is called "below", and nothing is assumed to respond more than the positive control.
+    """
+    convert, low, window = _control_scale(wells, use_standards)
+    out: dict[str, dict] = {}
+    for cid in sorted({w["id"] for w in wells if w["role"] == "cpd"}):
+        pts = [(float(w["conc_nM"]), w["ratio"]) for w in wells if w["role"] == "cpd" and w["id"] == cid]
+        conc = np.array([c for c, _ in pts])
+        y = convert([r for _, r in pts])
+        doses = sorted(set(conc.tolist()))
+        top = doses[-1]
+        limit = 9.0 - float(np.log10(top))
+        logx = np.log10(conc)
+        if window is None:
+            fit = fit_4pl(logx, y, step=POTENCY_FIT_STEP) if len(doses) >= 4 else None
+        else:
+            frac = (y - low) / window  # 0 at the negative control, 1 at the positive control, rising with response
+            if max(float(frac[conc == c].mean()) for c in doses) < ACTIVE_FRACTION:
+                out[cid] = {"below": limit, "top_nM": top}
+                continue
+            fit = fit_4pl_capped(logx, frac, 1.0, step=POTENCY_FIT_STEP) if len(doses) >= 4 else None
+        ok = fit is not None and fit["r2"] >= MIN_R2 and not fit["at_edge"]
+        ok = ok and (window is None or abs(fit["top"] - fit["bottom"]) >= MIN_SPAN)
+        if ok and logx.min() <= fit["logec50"] <= logx.max():
+            out[cid] = {"pEC50": 9.0 - fit["logec50"], "top_nM": top}
+        elif window is not None:
+            out[cid] = {"above": limit, "top_nM": top}
+    return out
+
+
+def selectivity_window(on_pec50, off_calls) -> dict | None:
+    """Selectivity window in log units: on-target pEC50 minus the pEC50 at the most potent off-target.
+
+    off_calls holds one estimate_potency call per off-target (None for an off-target that was not
+    tested). Returns {"window": x, "at_least": False} when the most potent off-target was measured
+    and no bound sits above it; {"window": x, "at_least": True} when the limit is a bound, so the
+    window is at least on-target pEC50 minus the highest "below" limit; and None when no window can
+    be stated: no on-target potency, an untested off-target, or an off-target that is active
+    without a potency.
+    """
+    if on_pec50 is None or isinstance(on_pec50, bool) or not np.isfinite(on_pec50):
+        return None
+    off_calls = list(off_calls)
+    if not off_calls or any(c is None or "above" in c or not ("pEC50" in c or "below" in c) for c in off_calls):
+        return None
+    measured = max((c["pEC50"] for c in off_calls if "pEC50" in c), default=float("-inf"))
+    bound = max((c["below"] for c in off_calls if "pEC50" not in c), default=float("-inf"))
+    if measured >= bound:
+        return {"window": float(on_pec50 - measured), "at_least": False}
+    return {"window": float(on_pec50 - bound), "at_least": True}

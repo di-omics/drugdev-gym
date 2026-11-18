@@ -5,7 +5,8 @@ from .gi_camp_potency import GiCampPotency
 from .gi_fluid_stability import GiFluidStability
 from .lead_opt import LeadOpt
 from .review import PlateReview, TimecourseReview
+from .selectivity_panel import SelectivityPanel
 from .stability import Stability
 
 __all__ = ["AssayWindow", "Env", "DoseResponse", "GiCampPotency", "GiFluidStability", "LeadOpt", "PlateReview",
-           "Stability", "TimecourseReview"]
+           "SelectivityPanel", "Stability", "TimecourseReview"]

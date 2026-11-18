@@ -547,6 +547,151 @@ GI_CAMP_POTENCY = {
 }
 POLICIES["gi_camp_potency"] = GI_CAMP_POTENCY
 
+# ---------------------------------------------------------------- selectivity panel
+
+from .analysis import estimate_potency, selectivity_window  # noqa: E402
+from .envs import selectivity_panel as sp_env  # noqa: E402
+
+SP_ON = {**DR_EXPERT, "top_conc_nM": 3000.0}  # on-target plate: range centred on nanomolar leads
+SP_OFF = {**DR_EXPERT, "top_conc_nM": 100000.0}  # off-target plates: reach the labware limit
+SP_PLAN = (sp_env.ON_TARGET,) + sp_env.OFF_TARGETS  # one plate per target; the sixth plate is kept for a repeat
+SP_OVERCLAIM_LOG = 1.0  # log units the claim_past_range trap adds to every bound it reports
+SP_NULL_CLAIM = 2.0  # the null claims "at least 100-fold" for every compound without testing anything
+SP_RANDOM_WINDOW = (0.0, 5.0)  # the random policy's claims: from no window to the widest the labware can show
+
+SP_CHOICES = {**DR_CHOICES, "top_conc_nM": [100.0, 1000.0, 3000.0, 10000.0, 30000.0, 100000.0],
+              "n_points": [1, 4, 6, 8, 10], "replicates": [1, 2, 3]}
+
+
+class SelectivityPolicy:
+    """One plate per target in the plan, one repeat of a plate whose controls fail while a spare
+    plate is left, then one window per compound from analysis.estimate_potency and
+    analysis.selectivity_window: exact where an off-target curve was measured, a lower bound
+    where nothing was seen up to the top dose, and no answer where no window can be stated.
+
+    Three reporting mistakes can be switched on. overclaim_log: a bound stated beyond the tested
+    range. bound_as_number: a bound reported as if it were a measured number. hit_as_potency: a
+    well that is active without a curve (a single-point hit) reported as a potency equal to the
+    concentration tested, as if a curve had put the midpoint there.
+    """
+
+    def __init__(self, on_design: dict = SP_ON, off_design: dict = SP_OFF, plan=SP_PLAN, use_standards: bool = True,
+                 overclaim_log: float = 0.0, bound_as_number: bool = False, hit_as_potency: bool = False):
+        self.on_design, self.off_design, self.plan = dict(on_design), dict(off_design), tuple(plan)
+        self.use_standards, self.overclaim_log, self.bound_as_number = use_standards, overclaim_log, bound_as_number
+        self.hit_as_potency = hit_as_potency
+        self.queue = list(self.plan)
+        self.compounds: list[str] = []
+        self.data: dict[str, list[dict]] = {}  # latest plate per target
+
+    def settings(self) -> dict:
+        """Every choice a trap may change, flat, so two policies can be compared field by field."""
+        return {"plan": self.plan, "use_standards": self.use_standards, "overclaim_log": self.overclaim_log,
+                "bound_as_number": self.bound_as_number, "hit_as_potency": self.hit_as_potency,
+                **{f"on.{k}": v for k, v in self.on_design.items()},
+                **{f"off.{k}": v for k, v in self.off_design.items()}}
+
+    def _calls(self) -> dict[str, dict]:
+        calls = {target: estimate_potency(wells, self.use_standards) for target, wells in self.data.items()}
+        if self.hit_as_potency:  # "active, potency not determined" becomes a potency at the dose tested
+            calls = {target: {cid: {"pEC50": c["above"], "top_nM": c["top_nM"]} if "above" in c else c
+                              for cid, c in by_cid.items()} for target, by_cid in calls.items()}
+        return calls
+
+    def _report(self) -> dict:
+        calls = self._calls()
+        windows = {}
+        for cid in self.compounds:
+            on = calls.get(sp_env.ON_TARGET, {}).get(cid, {}).get("pEC50")
+            window = selectivity_window(on, [calls.get(t, {}).get(cid) for t in sp_env.OFF_TARGETS])
+            if window is None:
+                continue
+            if window["at_least"]:
+                window["window"] += self.overclaim_log
+                window["at_least"] = not self.bound_as_number
+            windows[cid] = window
+        return {"type": "report", "windows": windows}
+
+    def act(self, obs: dict) -> dict:
+        if obs.get("phase") == "start":
+            self.compounds = list(obs["compounds"])
+        elif obs.get("phase") == "data":
+            self.data[obs["target"]] = obs["wells"]
+            z = control_zprime(obs["wells"])
+            if obs["plates_left"] > len(self.queue) and np.isfinite(z) and z < 0.5:
+                self.queue.insert(0, obs["target"])
+        else:
+            return {"type": "report", "windows": {}}
+        if self.queue and obs["plates_left"] > 0:
+            target = self.queue.pop(0)
+            return {"type": "run_plate", "target": target, "compounds": list(self.compounds),
+                    "design": dict(self.on_design if target == sp_env.ON_TARGET else self.off_design)}
+        return self._report()
+
+
+class SelectivityRandom(SelectivityPolicy):
+    """A random plan of random plates, then a random claim for every compound, read from nothing."""
+
+    def __init__(self, seed: int):
+        self.rng = np.random.default_rng([seed, 99])
+        n_plates = int(self.rng.integers(1, sp_env.PLATE_BUDGET + 1))
+        plan = [sp_env.TARGETS[int(i)] for i in self.rng.integers(len(sp_env.TARGETS), size=n_plates)]
+        super().__init__(random_sp_design(self.rng), random_sp_design(self.rng), plan)
+
+    def _report(self) -> dict:
+        return {"type": "report", "windows": {
+            cid: {"window": float(self.rng.uniform(*SP_RANDOM_WINDOW)), "at_least": bool(self.rng.integers(2))}
+            for cid in self.compounds}}
+
+
+class SelectivityNull:
+    """Answers without running anything: the same untested claim of selectivity for every compound."""
+
+    def act(self, obs: dict) -> dict:
+        return {"type": "report", "windows": {c: {"window": SP_NULL_CLAIM, "at_least": True}
+                                               for c in obs.get("compounds", [])}}
+
+
+def random_sp_design(rng: np.random.Generator, n_compounds: int = 4) -> dict:
+    """A random plate design that fits the plate for n_compounds compounds."""
+    for _ in range(200):
+        design = {k: v[int(rng.integers(len(v)))] for k, v in SP_CHOICES.items()}
+        if sp_env.check_plate(design, n_compounds)[1] is None:
+            return design
+    return dict(SP_OFF)
+
+
+def _sp(**changes):
+    return lambda seed: SelectivityPolicy(**changes)
+
+
+def _sp_off(**changes):
+    return lambda seed: SelectivityPolicy(off_design={**SP_OFF, **changes})
+
+
+SELECTIVITY_PANEL = {
+    "expert": _sp(),
+    # one design field changed on the off-target plates
+    "on_target_range": _sp_off(top_conc_nM=SP_ON["top_conc_nM"]),
+    "single_point": _sp_off(n_points=1),
+    # the single point plus the report that reads it as a curve: an interaction, not a single mistake (see SP_INTERACTIONS)
+    "single_point_as_curve": lambda seed: SelectivityPolicy(off_design={**SP_OFF, "n_points": 1}, hit_as_potency=True),
+    "no_controls": _sp_off(controls_per_side=0),
+    "no_standards": _sp_off(standards=False),
+    # one plan change: every plate goes to the on-target
+    "on_target_only": _sp(plan=(sp_env.ON_TARGET,) * len(SP_PLAN)),
+    # one analysis or reporting choice changed
+    "raw_ratio": _sp(use_standards=False),
+    "claim_past_range": _sp(overclaim_log=SP_OVERCLAIM_LOG),
+    "inactive_as_number": _sp(bound_as_number=True),
+    "random": lambda seed: SelectivityRandom(seed),
+    "null": lambda seed: SelectivityNull(),
+}
+# Labelled interactions: the policy on the left is the single mistake on the right plus hit_as_potency.
+# Every other selectivity trap is the expert with exactly one change.
+SP_INTERACTIONS = {"single_point_as_curve": "single_point"}
+POLICIES["selectivity_panel"] = SELECTIVITY_PANEL
+
 
 def run_episode(env, policy) -> tuple[float, dict]:
     """Drive one environment to the end with one policy. Returns (total reward, final info)."""

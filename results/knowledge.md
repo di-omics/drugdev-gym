@@ -1,7 +1,7 @@
 # Expert rules: what the rewards can teach
 
-39 rules, 49 rule-trap pairs. The reward teaches 19 of them (the expert wins on at least 90% of seeds), 23 only on average, is blind to 7, and rewards the mistake in 0.
-39 of the 39 rules are drafts seeded from general bench practice and have not been reviewed by the expert yet.
+46 rules, 58 rule-trap pairs. The reward teaches 26 of them (the expert wins on at least 90% of seeds), 25 only on average, is blind to 7, and rewards the mistake in 0.
+46 of the 46 rules are drafts seeded from general bench practice and have not been reviewed by the expert yet.
 
 | env | rule | status | trap | reward teaches it | expert wins | reward gap |
 |---|---|---|---|---|---|---|
@@ -54,6 +54,15 @@
 | gi_camp_potency | Pin the top of every inhibition curve on the forskolin-only controls. | draft | free_plateau | on average | 69.5% | 0.068 |
 | gi_camp_potency | Titrate the cell number so the forskolin control lands inside the standard curve; more cells is not more signal. | draft | too_many_cells | on average | 70.0% | 0.132 |
 | gi_camp_potency | Mix after every transfer in the agonist dilution. | draft | no_mix | yes | 99.5% | 0.587 |
+| selectivity_panel | Dose the off-target plates up to the highest concentration the assay allows, not over the on-target range. | draft | on_target_range | yes | 99.5% | 0.528 |
+| selectivity_panel | When nothing is seen, say 'at least' up to the top dose you tested and no further. | draft | claim_past_range | yes | 94.5% | 0.520 |
+| selectivity_panel | A single concentration tells you whether something happens; run a curve wherever you need a potency. | draft | single_point | yes | 95.5% | 0.371 |
+| selectivity_panel | A single concentration tells you whether something happens; run a curve wherever you need a potency. | draft | single_point_as_curve | yes | 92.0% | 0.506 |
+| selectivity_panel | Put negative and positive controls on every off-target plate. | draft | no_controls | yes | 100.0% | 0.698 |
+| selectivity_panel | Spend the plates on the panel: every off-target needs data before any window can be stated. | draft | on_target_only | yes | 100.0% | 0.718 |
+| selectivity_panel | Read every target's plate through its own standard curve before you compare potencies. | draft | raw_ratio | on average | 86.5% | 0.283 |
+| selectivity_panel | Read every target's plate through its own standard curve before you compare potencies. | draft | no_standards | yes | 100.0% | 0.509 |
+| selectivity_panel | Report an inactive off-target as greater than the top dose, never as the top dose. | draft | inactive_as_number | on average | 85.8% | 0.205 |
 
 ## What a learner rediscovered from reward alone
 

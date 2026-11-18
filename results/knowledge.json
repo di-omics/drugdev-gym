@@ -1,9 +1,9 @@
 {
   "summary": {
-    "rule_traps": 49,
-    "rules": 39,
-    "yes": 19,
-    "on average": 23,
+    "rule_traps": 58,
+    "rules": 46,
+    "yes": 26,
+    "on average": 25,
     "no": 7,
     "inverted": 0,
     "not_measured": 0,
@@ -16,7 +16,7 @@
       "keep-off-the-outer-ring",
       "lid-the-plate"
     ],
-    "draft": 39
+    "draft": 46
   },
   "rows": [
     {
@@ -629,6 +629,114 @@
       "teaches": "yes",
       "win_rate": 0.995,
       "gap": 0.5868990972296182,
+      "learner": null
+    },
+    {
+      "env": "selectivity_panel",
+      "id": "dose-off-targets-to-the-limit",
+      "said": "Dose the off-target plates up to the highest concentration the assay allows, not over the on-target range.",
+      "status": "draft",
+      "trap": "on_target_range",
+      "verdict": "visible",
+      "teaches": "yes",
+      "win_rate": 0.995,
+      "gap": 0.5280332800871022,
+      "learner": null
+    },
+    {
+      "env": "selectivity_panel",
+      "id": "claim-only-the-tested-range",
+      "said": "When nothing is seen, say 'at least' up to the top dose you tested and no further.",
+      "status": "draft",
+      "trap": "claim_past_range",
+      "verdict": "visible",
+      "teaches": "yes",
+      "win_rate": 0.9450000000000001,
+      "gap": 0.519522407715321,
+      "learner": null
+    },
+    {
+      "env": "selectivity_panel",
+      "id": "a-curve-where-you-need-a-potency",
+      "said": "A single concentration tells you whether something happens; run a curve wherever you need a potency.",
+      "status": "draft",
+      "trap": "single_point",
+      "verdict": "visible",
+      "teaches": "yes",
+      "win_rate": 0.955,
+      "gap": 0.3707762379120935,
+      "learner": null
+    },
+    {
+      "env": "selectivity_panel",
+      "id": "a-curve-where-you-need-a-potency",
+      "said": "A single concentration tells you whether something happens; run a curve wherever you need a potency.",
+      "status": "draft",
+      "trap": "single_point_as_curve",
+      "verdict": "visible",
+      "teaches": "yes",
+      "win_rate": 0.92,
+      "gap": 0.5057155609142868,
+      "learner": null
+    },
+    {
+      "env": "selectivity_panel",
+      "id": "controls-on-every-panel-plate",
+      "said": "Put negative and positive controls on every off-target plate.",
+      "status": "draft",
+      "trap": "no_controls",
+      "verdict": "visible",
+      "teaches": "yes",
+      "win_rate": 1.0,
+      "gap": 0.6982628102626369,
+      "learner": null
+    },
+    {
+      "env": "selectivity_panel",
+      "id": "cover-the-whole-panel",
+      "said": "Spend the plates on the panel: every off-target needs data before any window can be stated.",
+      "status": "draft",
+      "trap": "on_target_only",
+      "verdict": "clean",
+      "teaches": "yes",
+      "win_rate": 1.0,
+      "gap": 0.718206051366358,
+      "learner": null
+    },
+    {
+      "env": "selectivity_panel",
+      "id": "compare-potencies-in-analyte-units",
+      "said": "Read every target's plate through its own standard curve before you compare potencies.",
+      "status": "draft",
+      "trap": "raw_ratio",
+      "verdict": "weak",
+      "teaches": "on average",
+      "win_rate": 0.865,
+      "gap": 0.28316518336303603,
+      "learner": null
+    },
+    {
+      "env": "selectivity_panel",
+      "id": "compare-potencies-in-analyte-units",
+      "said": "Read every target's plate through its own standard curve before you compare potencies.",
+      "status": "draft",
+      "trap": "no_standards",
+      "verdict": "visible",
+      "teaches": "yes",
+      "win_rate": 1.0,
+      "gap": 0.5087113378464121,
+      "learner": null
+    },
+    {
+      "env": "selectivity_panel",
+      "id": "a-bound-is-not-a-number",
+      "said": "Report an inactive off-target as greater than the top dose, never as the top dose.",
+      "status": "draft",
+      "trap": "inactive_as_number",
+      "verdict": "weak",
+      "teaches": "on average",
+      "win_rate": 0.8575,
+      "gap": 0.2054481043855645,
       "learner": null
     }
   ]

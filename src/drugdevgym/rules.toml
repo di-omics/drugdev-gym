@@ -333,3 +333,59 @@ said = "Mix after every transfer in the agonist dilution."
 why = "An unmixed well is sampled unevenly, and the error compounds down the ladder."
 traps = ["no_mix"]
 status = "draft"
+
+[[rule]]
+id = "dose-off-targets-to-the-limit"
+env = "selectivity_panel"
+said = "Dose the off-target plates up to the highest concentration the assay allows, not over the on-target range."
+why = "Off-target activity sits far above the on-target EC50, so a range centred on the on-target shows nothing. The bound it supports is true but 1.5 log units narrower than the assay could have shown, which earns no credit here, and weak off-targets between the two top doses go unseen."
+traps = ["on_target_range"]
+status = "draft"
+
+[[rule]]
+id = "claim-only-the-tested-range"
+env = "selectivity_panel"
+said = "When nothing is seen, say 'at least' up to the top dose you tested and no further."
+why = "Past the top dose there is no data, so a wider window is a guess that a hidden liability can break."
+traps = ["claim_past_range"]
+status = "draft"
+
+[[rule]]
+id = "a-curve-where-you-need-a-potency"
+env = "selectivity_panel"
+said = "A single concentration tells you whether something happens; run a curve wherever you need a potency."
+why = "One point cannot tell a weak full agonist from a potent partial one, so an active single-point well gives no window. Read as a potency at the dose tested, it puts the window at the labware limit and calls a close liability selective."
+traps = ["single_point", "single_point_as_curve"]
+status = "draft"
+
+[[rule]]
+id = "controls-on-every-panel-plate"
+env = "selectivity_panel"
+said = "Put negative and positive controls on every off-target plate."
+why = "Without the plate's own window a flat line cannot be called inactive, and the plate cannot pass its QC."
+traps = ["no_controls"]
+status = "draft"
+
+[[rule]]
+id = "cover-the-whole-panel"
+env = "selectivity_panel"
+said = "Spend the plates on the panel: every off-target needs data before any window can be stated."
+why = "The window is set by the most potent off-target, and an untested one could be it."
+traps = ["on_target_only"]
+status = "draft"
+
+[[rule]]
+id = "compare-potencies-in-analyte-units"
+env = "selectivity_panel"
+said = "Read every target's plate through its own standard curve before you compare potencies."
+why = "The competitive readout saturates, so a raw-ratio fit reads a curve about 0.6 log units too potent and lets the foot of an inactive curve cross half the control window. With standards left off the off-target plates only, every measured window reads that much too narrow. With raw ratio on every plate the shift cancels between two measured curves, but only because all five cell lines here sit on the same part of one kit's standard curve; it does not cancel in a bound, where the on-target shift alone pushes the claim past the tested range."
+traps = ["raw_ratio", "no_standards"]
+status = "draft"
+
+[[rule]]
+id = "a-bound-is-not-a-number"
+env = "selectivity_panel"
+said = "Report an inactive off-target as greater than the top dose, never as the top dose."
+why = "The top dose is only where the test stopped; written as a number it puts the window where the test ended instead of where the compound is."
+traps = ["inactive_as_number"]
+status = "draft"
