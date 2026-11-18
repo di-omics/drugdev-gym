@@ -1,6 +1,6 @@
-"""Dose-response brick: design a serial dilution on a cell assay plate and report pEC50s.
+"""Dose-response environment: design a serial dilution on a cell assay plate and report pEC50s.
 
-The agent chooses the protocol; the brick runs it on the simulated rig. The reward is the
+The agent chooses the protocol; the environment runs it on the simulated rig. The reward is the
 accuracy of the reported pEC50s against the hidden truth, halved when the plate fails its
 own QC (control Z' below 0.5), minus a small cost term.
 """
@@ -13,7 +13,7 @@ import numpy as np
 from ..analysis import zprime
 from ..chem import Kit, hill
 from ..rig import EDGE, Plate, Rig, RigProfile, usable_wells, well_name
-from .base import Brick, log_error_score, spec_help, validate
+from .base import Env, log_error_score, spec_help, validate
 
 STAMP_UL = 10.0
 CELLS_UL = 40.0
@@ -168,7 +168,7 @@ def plate_cost(n_wells: int, tips: int) -> float:
     return 10.0 + 1.0 * n_wells + 0.1 * tips
 
 
-class DoseResponse(Brick):
+class DoseResponse(Env):
     name = "dose_response"
     cost_reference = 200.0
     MAX_PLATES = 2
@@ -181,7 +181,7 @@ class DoseResponse(Brick):
 
     def spec(self) -> dict:
         return {
-            "brick": self.name,
+            "env": self.name,
             "task": ("Measure the pEC50 of each compound on a Gq-style cell assay read by a competitive TR-FRET "
                      "immunoassay (the ratio falls as the second messenger rises). Run up to "
                      f"{self.MAX_PLATES} plates, then report."),

@@ -3,41 +3,41 @@ import json
 import numpy as np
 import pytest
 
-from rxbricks import BRICKS, make
-from rxbricks.policies import DR_EXPERT, POLICIES, ST_EXPERT, run_episode
+from drugdevgym import ENVS, make
+from drugdevgym.policies import DR_EXPERT, POLICIES, ST_EXPERT, run_episode
 
 HIDDEN_WORDS = ("truth", "pec50", "emax", "half_lives", "per_k", "sticky", "basal")
 
 
-def play(brick, policy, seed, rig="nominal"):
-    return run_episode(make(brick, seed=seed, rig=rig), POLICIES[brick][policy](seed))
+def play(env_name, policy, seed, rig="nominal"):
+    return run_episode(make(env_name, seed=seed, rig=rig), POLICIES[env_name][policy](seed))
 
 
-@pytest.mark.parametrize("brick", list(BRICKS))
-def test_same_seed_same_episode(brick):
-    assert play(brick, "expert", 3)[0] == play(brick, "expert", 3)[0]
-    assert play(brick, "expert", 3)[0] != play(brick, "expert", 4)[0]
+@pytest.mark.parametrize("env_name", list(ENVS))
+def test_same_seed_same_episode(env_name):
+    assert play(env_name, "expert", 3)[0] == play(env_name, "expert", 3)[0]
+    assert play(env_name, "expert", 3)[0] != play(env_name, "expert", 4)[0]
 
 
-@pytest.mark.parametrize("brick", list(BRICKS))
+@pytest.mark.parametrize("env_name", list(ENVS))
 @pytest.mark.parametrize("rig", ["nominal", "randomized", "harsh"])
-def test_observations_are_json_and_never_leak_the_truth(brick, rig):
-    env, policy = make(brick, seed=5, rig=rig), POLICIES[brick]["expert"](5)
+def test_observations_are_json_and_never_leak_the_truth(env_name, rig):
+    env, policy = make(env_name, seed=5, rig=rig), POLICIES[env_name]["expert"](5)
     obs, done = env.reset(), False
     while not done:
         json.dumps(obs)  # the whole observation is plain JSON
         text = json.dumps({k: v for k, v in obs.items() if k != "spec"}).lower()  # spec is public task text
-        assert not any(word in text for word in HIDDEN_WORDS), brick
+        assert not any(word in text for word in HIDDEN_WORDS), env_name
         obs, reward, done, info = env.step(policy.act(obs))
         assert done or info == {}
     assert "truth" in info and reward <= 1.0
     assert "truth" not in json.dumps(obs)
 
 
-@pytest.mark.parametrize("brick", list(BRICKS))
-def test_step_after_the_end_raises(brick):
-    env = make(brick, seed=0)
-    run_episode(env, POLICIES[brick]["expert"](0))
+@pytest.mark.parametrize("env_name", list(ENVS))
+def test_step_after_the_end_raises(env_name):
+    env = make(env_name, seed=0)
+    run_episode(env, POLICIES[env_name]["expert"](0))
     with pytest.raises(RuntimeError):
         env.step({"type": "report"})
 
@@ -78,12 +78,12 @@ def test_a_starved_ladder_ruins_the_curve():
     assert np.mean(rewards) < 0.2
 
 
-@pytest.mark.parametrize("brick,weaker", [("dose_response", "null"), ("stability", "null"),
+@pytest.mark.parametrize("env_name,weaker", [("dose_response", "null"), ("stability", "null"),
                                           ("assay_window", "random"), ("lead_opt", "null")])
-def test_expert_beats_the_floor_policy(brick, weaker):
+def test_expert_beats_the_floor_policy(env_name, weaker):
     seeds = range(12)
-    expert = np.mean([play(brick, "expert", s)[0] for s in seeds])
-    floor = np.mean([play(brick, weaker, s)[0] for s in seeds])
+    expert = np.mean([play(env_name, "expert", s)[0] for s in seeds])
+    floor = np.mean([play(env_name, weaker, s)[0] for s in seeds])
     assert expert > floor + 0.1
 
 
@@ -100,8 +100,8 @@ def test_task_ids_round_trip():
         make("alchemy")
 
 
-def test_every_brick_documents_its_actions_and_reward():
-    for name in BRICKS:
+def test_every_env_documents_its_actions_and_reward():
+    for name in ENVS:
         spec = make(name).spec()
-        assert spec["brick"] == name and spec["actions"] and "reward" in spec
+        assert spec["env"] == name and spec["actions"] and "reward" in spec
         json.dumps(spec)

@@ -1,6 +1,6 @@
 """Physical layer: plates, a liquid handler and a plate reader with explicit error sources.
 
-Every brick runs its protocol through this layer, so an agent's choices (volumes, mixing,
+Every environment runs its protocol through this layer, so an agent's choices (volumes, mixing,
 tips, lids, layout) change the data the same way they would at the bench.
 
 Every number in RigProfile is an assumed order-of-magnitude default, NOT a measurement.

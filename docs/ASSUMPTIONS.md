@@ -4,7 +4,7 @@ Nothing in this repository has touched hardware, cells, or compounds. Every numb
 an assumed order-of-magnitude default chosen to be plausible, not a measurement. The point
 of listing them is that each one is a named dial that real QC data can replace.
 
-## Physical layer (src/rxbricks/rig.py, RigProfile)
+## Physical layer (src/drugdevgym/rig.py, RigProfile)
 
 | parameter | default | what it stands for | how to measure it for real |
 |---|---|---|---|

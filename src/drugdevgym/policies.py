@@ -1,4 +1,4 @@
-"""Reference policies: one expert per brick, named bench mistakes ("traps"), and a null.
+"""Reference policies: one expert per environment, named bench mistakes ("traps"), and a null.
 
 A trap is the expert protocol with exactly one mistake a real bench makes. Environment QC
 (envqc.py) then measures whether the reward can tell the expert from each trap. A policy is
@@ -12,7 +12,7 @@ import numpy as np
 
 from .analysis import (analyte_zprime, control_zprime, estimate_half_life, estimate_pec50, fit_4pl, invert_4pl,
                        zprime)
-from .bricks.lead_opt import OPTIONS, POSITIONS, analog_id, desirability, parse_id
+from .envs.lead_opt import OPTIONS, POSITIONS, analog_id, desirability, parse_id
 
 # ---------------------------------------------------------------- dose response
 
@@ -289,12 +289,12 @@ POLICIES = {"dose_response": DOSE_RESPONSE, "stability": STABILITY, "assay_windo
             "lead_opt": LEAD_OPT}
 
 
-def run_episode(brick, policy) -> tuple[float, dict]:
-    """Drive one brick to the end with one policy. Returns (total reward, final info)."""
-    obs = brick.reset()
+def run_episode(env, policy) -> tuple[float, dict]:
+    """Drive one environment to the end with one policy. Returns (total reward, final info)."""
+    obs = env.reset()
     total = 0.0
     while True:
-        obs, reward, done, info = brick.step(policy.act(obs))
+        obs, reward, done, info = env.step(policy.act(obs))
         total += reward
         if done:
             return total, info

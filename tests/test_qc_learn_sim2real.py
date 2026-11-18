@@ -5,9 +5,9 @@ from pathlib import Path
 
 import numpy as np
 
-from rxbricks import envqc, learn, make
-from rxbricks.policies import DR_CHOICES, DR_EXPERT, POLICIES, run_episode
-from rxbricks.sim2real import fingerprint, gap, worklist_csv
+from drugdevgym import envqc, learn, make
+from drugdevgym.policies import DR_CHOICES, DR_EXPERT, POLICIES, run_episode
+from drugdevgym.sim2real import fingerprint, gap, worklist_csv
 
 ROOT = Path(__file__).resolve().parents[1]
 

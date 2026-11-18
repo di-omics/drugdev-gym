@@ -1,4 +1,4 @@
-"""Chemistry layer: the textbook models every brick is built on.
+"""Chemistry layer: the textbook models every environment is built on.
 
 Receptor response is a Hill curve. Detection is a competitive TR-FRET immunoassay, where
 the signal ratio FALLS as the analyte (the second messenger) rises, so raw ratios are not

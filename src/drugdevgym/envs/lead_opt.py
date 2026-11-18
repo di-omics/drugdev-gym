@@ -1,8 +1,8 @@
-"""Lead-optimization campaign: the dose-response and stability bricks snapped into a DMTA loop.
+"""Lead-optimization campaign: the dose-response and stability environments snapped into a DMTA loop.
 
 A hidden structure-activity landscape covers 5^4 = 625 analogs. Each round the agent picks
 up to six analogs to make and chooses the protocols used to test them; the raw plate and
-LC-MS data come back exactly as the single bricks return them. After at most four rounds the
+LC-MS data come back exactly as the single environments return them. After at most four rounds the
 agent nominates one analog. The reward is the TRUE desirability of the nominee over the best
 in the library, so sloppy measurement upstream costs reward downstream.
 """
@@ -12,7 +12,7 @@ import itertools
 
 import numpy as np
 
-from .base import Brick, spec_help
+from .base import Env, spec_help
 from .dose_response import DESIGN_SPEC as DR_SPEC
 from .dose_response import Compound, draw_assay, plate_cost, simulate_plate
 from .dose_response import check_design as check_dr
@@ -38,7 +38,7 @@ def parse_id(cid: str) -> tuple[int, ...]:
     return tuple(int(ch) for ch in cid[1:])
 
 
-class LeadOpt(Brick):
+class LeadOpt(Env):
     name = "lead_opt"
     cost_reference = 2000.0
     MAX_ROUNDS = 4
@@ -69,7 +69,7 @@ class LeadOpt(Brick):
 
     def spec(self) -> dict:
         return {
-            "brick": self.name,
+            "env": self.name,
             "task": (f"Find the best analog in a library of {OPTIONS ** POSITIONS}: an analog is {POSITIONS} "
                      f"positions with {OPTIONS} options each, written as a list such as [0, 3, 1, 4]. Up to "
                      f"{self.MAX_ROUNDS} rounds of up to {self.BATCH} analogs, then nominate one."),

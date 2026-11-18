@@ -1,26 +1,27 @@
-"""Command line: rxbricks list | play | qc | learn."""
+"""Command line: drugdev-gym list | play | qc | learn."""
 from __future__ import annotations
 
 import argparse
 import json
+import sys
 from pathlib import Path
 
 from . import envqc, learn
 from .policies import DR_EXPERT, POLICIES, run_episode
-from .registry import BRICKS, RIGS, make
+from .registry import ENVS, RIGS, make
 
 
 def _list(_args) -> None:
-    for name, cls in BRICKS.items():
-        print(f"{name}: {(cls.__doc__ or cls.__module__).strip()}")
+    for name, cls in ENVS.items():
+        print(f"{name}: {sys.modules[cls.__module__].__doc__.strip().splitlines()[0]}")
         print(f"  policies: {', '.join(POLICIES[name])}")
-    print(f"rigs: {', '.join(RIGS)}; task id = brick/rig/seed, any integer seed")
+    print(f"rigs: {', '.join(RIGS)}; task id = env/rig/seed, any integer seed")
 
 
 def _play(args) -> None:
-    brick = make(args.brick, seed=args.seed, rig=args.rig)
-    reward, info = run_episode(brick, POLICIES[args.brick][args.policy](args.seed))
-    print(json.dumps({"task": f"{args.brick}/{args.rig}/{args.seed}", "policy": args.policy,
+    env = make(args.env, seed=args.seed, rig=args.rig)
+    reward, info = run_episode(env, POLICIES[args.env][args.policy](args.seed))
+    print(json.dumps({"task": f"{args.env}/{args.rig}/{args.seed}", "policy": args.policy,
                       "reward": round(reward, 4), "info": info}, indent=2, default=float))
 
 
@@ -28,7 +29,7 @@ def _qc(args) -> None:
     out = Path(args.out)
     (out / "cards").mkdir(parents=True, exist_ok=True)
     summary = {}
-    for name in (args.brick or list(BRICKS)):
+    for name in (args.env or list(ENVS)):
         card = envqc.qc_card(name, n_seeds=args.seeds, rig=args.rig)
         suffix = "" if args.rig == "nominal" else f"_{args.rig}"
         (out / "cards" / f"{name}{suffix}.md").write_text(envqc.card_markdown(card))
@@ -65,17 +66,17 @@ def _learn(args) -> None:
 
 
 def main(argv=None) -> None:
-    parser = argparse.ArgumentParser(prog="rxbricks", description=__doc__)
+    parser = argparse.ArgumentParser(prog="drugdev-gym", description=__doc__)
     sub = parser.add_subparsers(dest="command", required=True)
     sub.add_parser("list").set_defaults(func=_list)
     p = sub.add_parser("play")
-    p.add_argument("brick", choices=list(BRICKS))
+    p.add_argument("env", choices=list(ENVS))
     p.add_argument("--policy", default="expert")
     p.add_argument("--seed", type=int, default=0)
     p.add_argument("--rig", default="nominal", choices=RIGS)
     p.set_defaults(func=_play)
     p = sub.add_parser("qc")
-    p.add_argument("--brick", action="append", choices=list(BRICKS))
+    p.add_argument("--env", action="append", choices=list(ENVS))
     p.add_argument("--seeds", type=int, default=200)
     p.add_argument("--rig", default="nominal", choices=RIGS)
     p.add_argument("--out", default="results")

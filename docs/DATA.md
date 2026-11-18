@@ -13,7 +13,7 @@ discovery? Working answer below. It is a plan, not a result.
 
 Simulation gives 1 and 3 for free and fakes 2. Real data is needed mostly to fix 2.
 
-## Data types, by brick
+## Data types, by environment
 
 **Potency (dose_response, assay_window)**
 
@@ -43,7 +43,7 @@ Simulation gives 1 and 3 for free and fakes 2. Real data is needed mostly to fix
 |---|---|---|---|
 | 0 | Mechanistic simulation (this repo) | unlimited seeded tasks, exact truth | none |
 | 1 | Instrument QC on the real rig: dye or gravimetric volume checks, uniformity plates | the RigProfile numbers | about a day of robot time, no compounds |
-| 2 | Reference replays: public tool compounds with literature potency on a commercial kit, run with the expert protocol and each trap | the sim-to-real gap per brick (sim2real.gap), tolerance from real reproducibility | a few plates |
+| 2 | Reference replays: public tool compounds with literature potency on a commercial kit, run with the expert protocol and each trap | the sim-to-real gap per environment (sim2real.gap), tolerance from real reproducibility | a few plates |
 | 3 | Public data for the truth distribution: potency and stability value ranges, matched pairs for how rough SAR is | realistic hidden landscapes | none |
 | 4 | Real-in-the-loop episodes: replay recorded runs (offline), or queue a real plate per episode | a held-out real test set | slow, expensive, small |
 

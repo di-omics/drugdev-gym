@@ -1,7 +1,7 @@
 import numpy as np
 
-from rxbricks.analysis import analyte_zprime, estimate_half_life, fit_4pl, invert_4pl, zprime
-from rxbricks.chem import Kit, hill, remaining
+from drugdevgym.analysis import analyte_zprime, estimate_half_life, fit_4pl, invert_4pl, zprime
+from drugdevgym.chem import Kit, hill, remaining
 
 
 def test_zprime_matches_the_definition():

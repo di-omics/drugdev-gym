@@ -1,7 +1,7 @@
-"""Brick: one seeded, simulated stage of drug development with a verifiable reward.
+"""Env: one seeded, simulated stage of drug development with a verifiable reward.
 
-One brick instance is one episode. Observations and actions are plain JSON-style dicts so
-the same brick can be driven by a script, a learner, or an LLM agent with a tool call.
+One environment instance is one episode. Observations and actions are plain JSON-style dicts so
+the same environment can be driven by a script, a learner, or an LLM agent with a tool call.
 The hidden truth never appears in an observation; it is returned in `info` only at the end.
 """
 from __future__ import annotations
@@ -71,8 +71,8 @@ def log_error_score(estimate: float, truth: float, tol: float = 0.5) -> float:
     return float(np.clip(1.0 - abs(estimate - truth) / tol, 0.0, 1.0))
 
 
-class Brick:
-    name = "brick"
+class Env:
+    name = "env"
     cost_reference = 100.0
     MAX_INVALID = 5
 
@@ -98,7 +98,7 @@ class Brick:
 
     def _check_open(self, action) -> str | None:
         if self.done:
-            raise RuntimeError("episode is over; make a new brick")
+            raise RuntimeError("episode is over; make a new environment")
         if not isinstance(action, dict) or "type" not in action:
             return "action must be an object with a 'type'"
         return None

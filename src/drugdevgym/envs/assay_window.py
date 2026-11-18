@@ -1,6 +1,6 @@
-"""Assay-window brick: find cell density and stimulation time that give a usable window.
+"""Assay-window environment: find cell density and stimulation time that give a usable window.
 
-Sequential: up to three pilot plates, then commit one condition. The brick runs a fresh
+Sequential: up to three pilot plates, then commit one condition. The environment runs a fresh
 validation plate at the committed condition and the reward is that plate's Z' in ANALYTE
 units (controls back-calculated through the on-plate standard curve, clipped to 0..1)
 minus cost. Detection is a competitive immunoassay, so more cells is not better: too much
@@ -14,7 +14,7 @@ import numpy as np
 from ..analysis import analyte_zprime, zprime
 from ..chem import Kit
 from ..rig import EDGE, Plate, Rig, usable_wells
-from .base import Brick, spec_help, validate
+from .base import Env, spec_help, validate
 from .dose_response import CELLS_UL, DETECT_UL, FINAL_UL, STAMP_UL, STD_SERIES_NM
 
 PILOT_PER_SIDE = 8
@@ -30,7 +30,7 @@ PLATE_SPEC = {
 }
 
 
-class AssayWindow(Brick):
+class AssayWindow(Env):
     name = "assay_window"
     cost_reference = 800.0
     MAX_PILOTS = 3
@@ -47,7 +47,7 @@ class AssayWindow(Brick):
 
     def spec(self) -> dict:
         return {
-            "brick": self.name,
+            "env": self.name,
             "task": ("Develop a cell assay read by a competitive TR-FRET immunoassay. Run up to "
                      f"{self.MAX_PILOTS} pilot plates of control wells, then commit one condition. "
                      "A fresh validation plate is run at the committed condition."),

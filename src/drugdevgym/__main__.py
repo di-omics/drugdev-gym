@@ -1,4 +1,4 @@
-"""python -m rxbricks"""
+"""python -m drugdevgym"""
 from .cli import main
 
 main()

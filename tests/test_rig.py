@@ -2,7 +2,7 @@ from dataclasses import replace
 
 import numpy as np
 
-from rxbricks.rig import EDGE, Plate, Rig, RigProfile, usable_wells, well_name
+from drugdevgym.rig import EDGE, Plate, Rig, RigProfile, usable_wells, well_name
 
 EXACT = replace(RigProfile(), cv_floor=0.0, cv_k=0.0, bias_k=0.0, carryover=0.0, dead_volume_ul=0.0)
 

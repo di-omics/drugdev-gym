@@ -1,4 +1,4 @@
-"""Stability brick: design a matrix stability time course (plasma-style) and report half-lives.
+"""Stability environment: design a matrix stability time course (plasma-style) and report half-lives.
 
 Each replicate is its own incubation well. At every time point an aliquot goes into a quench
 plate and is read by a simulated LC-MS injection. The reward is the accuracy of the reported
@@ -11,7 +11,7 @@ import numpy as np
 from ..analysis import response
 from ..chem import remaining
 from ..rig import Plate, Rig, RigProfile, usable_wells
-from .base import Brick, log_error_score, spec_help, validate
+from .base import Env, log_error_score, spec_help, validate
 
 MATRIX_UL = 200.0
 SPIKE_UL = 2.0
@@ -100,7 +100,7 @@ def score_half_life(estimate, truth: float) -> float:
     return log_error_score(float(np.log10(np.clip(estimate, HL_LO, HL_HI))), float(np.log10(np.clip(truth, HL_LO, HL_HI))))
 
 
-class Stability(Brick):
+class Stability(Env):
     name = "stability"
     cost_reference = 300.0
 
@@ -112,7 +112,7 @@ class Stability(Brick):
 
     def spec(self) -> dict:
         return {
-            "brick": self.name,
+            "env": self.name,
             "task": ("Measure the half-life of each compound in a 37 C matrix incubation read by LC-MS. "
                      "Run one time course, then report half-lives in minutes."),
             "actions": {"run": {"design": spec_help(DESIGN_SPEC)},

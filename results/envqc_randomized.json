@@ -1,6 +1,6 @@
 {
   "assay_window": {
-    "brick": "assay_window",
+    "env": "assay_window",
     "rig": "randomized",
     "n_seeds": 200,
     "first_seed": 0,
@@ -88,7 +88,7 @@
     ]
   },
   "dose_response": {
-    "brick": "dose_response",
+    "env": "dose_response",
     "rig": "randomized",
     "n_seeds": 200,
     "first_seed": 0,
@@ -212,7 +212,7 @@
     ]
   },
   "stability": {
-    "brick": "stability",
+    "env": "stability",
     "rig": "randomized",
     "n_seeds": 200,
     "first_seed": 0,
@@ -336,7 +336,7 @@
     ]
   },
   "lead_opt": {
-    "brick": "lead_opt",
+    "env": "lead_opt",
     "rig": "randomized",
     "n_seeds": 200,
     "first_seed": 0,

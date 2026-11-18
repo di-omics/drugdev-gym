@@ -20,7 +20,7 @@ WORKLIST_FIELDS = ["step", "op", "src_plate", "src_well", "dst_plate", "dst_well
 
 
 def worklist_csv(log: list[dict]) -> str:
-    """Turn a brick's step log (brick.last_log) into a CSV worklist."""
+    """Turn an environment's step log (env.last_log) into a CSV worklist."""
     buf = io.StringIO()
     writer = csv.DictWriter(buf, fieldnames=WORKLIST_FIELDS, extrasaction="ignore", lineterminator="\n")
     writer.writeheader()
