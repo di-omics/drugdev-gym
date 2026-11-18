@@ -213,3 +213,59 @@ said = "Do not repeat a time course that passes its checks."
 why = "LC-MS time is the bottleneck; a harmless deviation is not a reason."
 traps = ["always_repeat"]
 status = "draft"
+
+[[rule]]
+id = "quench-must-stop-that-enzyme"
+env = "gi_fluid_stability"
+said = "Stop gastric samples by neutralising them, not with the acid stop used for intestinal fluid or plasma."
+why = "Pepsin works best at low pH, so an acid-quenched gastric sample keeps digesting for as long as it waits. Cold and injected the same day, that costs only the fastest peptides; left warm overnight, the control substrate and the faster peptides are digested away before injection."
+traps = ["acid_quench_in_sgf", "acid_quench_in_sgf_warm_overnight"]
+status = "draft"
+
+[[rule]]
+id = "fresh-enzyme-every-run"
+env = "gi_fluid_stability"
+said = "Dissolve the pepsin and the pancreatin fresh for every run."
+why = "Pancreatin digests itself in solution: yesterday's intestinal fluid has about two thirds of its activity, the control substrate reads it and the run fails its activity window. Uncorrected, intestinal half-lives read about 1.5 times too long. Pepsin loses under 10% and is not punished here."
+traps = ["stale_enzyme"]
+status = "draft"
+
+[[rule]]
+id = "run-an-activity-control"
+env = "gi_fluid_stability"
+said = "Run a control substrate with a known half-life in every fluid, every run."
+why = "The control is the only thing in the data that shows whether the enzyme was at specification activity."
+traps = ["no_activity_control"]
+status = "draft"
+
+[[rule]]
+id = "early-time-points-for-fast-peptides"
+env = "gi_fluid_stability"
+said = "Take the first samples within the first few minutes."
+why = "Many peptides are gone from intestinal fluid in minutes, and a first sample at 15 minutes only gives an upper bound."
+traps = ["late_first_point"]
+status = "draft"
+
+[[rule]]
+id = "true-time-zero"
+env = "gi_fluid_stability"
+said = "Make time zero by quenching the fluid before the compound meets the enzyme."
+why = "A sample taken after spiking and mixing has already digested for a minute, which is most of a fast peptide."
+traps = ["no_true_time_zero"]
+status = "draft"
+
+[[rule]]
+id = "gi-internal-standard"
+env = "gi_fluid_stability"
+said = "Quench into internal standard and read the peptide over it."
+why = "Sample-to-sample MS response varies more than the loss between neighbouring time points."
+traps = ["no_internal_standard"]
+status = "draft"
+
+[[rule]]
+id = "the-enzyme-weakens-during-the-run"
+env = "gi_fluid_stability"
+said = "Fit against what the enzyme could still do, not against the clock."
+why = "Pancreatin loses half its activity over a four-hour incubation, so slow peptides read about a quarter too long against the clock."
+traps = ["ignore_enzyme_decay"]
+status = "draft"

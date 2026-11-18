@@ -192,3 +192,8 @@ def test_editing_an_observation_cannot_flip_a_qc_gate():
     obs["samples"].clear()
     assert not st.step({"type": "report", "half_life_min": {}})[3]["qc_pass"]
     assert "error" in make("dose_response", seed=0).step({"type": "run_plate", "design": {1: 2, "b": 3}})[0]
+    gi = make("gi_fluid_stability", seed=0)  # no activity control was run: forged control rows must not pass the gate
+    obs, *_ = gi.step(POLICIES["gi_fluid_stability"]["no_activity_control"](0).act(gi.reset()))
+    obs["samples"] += [{"id": "control", "fluid": f, "replicate": r, "time_min": t, "area": 2e4 * 0.5 ** (t / 15), "is_area": 100.0}
+                       for f in ("sgf", "sif") for r in (1, 2) for t in (0.0, 15.0)]
+    assert not gi.step({"type": "report", "half_life_min": {}})[3]["qc_pass"] and len(gi.samples) == 96

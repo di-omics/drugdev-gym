@@ -1,9 +1,9 @@
 {
   "summary": {
-    "rule_traps": 33,
-    "rules": 24,
-    "yes": 11,
-    "on average": 17,
+    "rule_traps": 41,
+    "rules": 31,
+    "yes": 16,
+    "on average": 20,
     "no": 5,
     "inverted": 0,
     "not_measured": 0,
@@ -16,7 +16,7 @@
       "keep-off-the-outer-ring",
       "lid-the-plate"
     ],
-    "draft": 24
+    "draft": 31
   },
   "rows": [
     {
@@ -437,6 +437,102 @@
       "teaches": "on average",
       "win_rate": 0.74,
       "gap": 0.2879999999999999,
+      "learner": null
+    },
+    {
+      "env": "gi_fluid_stability",
+      "id": "quench-must-stop-that-enzyme",
+      "said": "Stop gastric samples by neutralising them, not with the acid stop used for intestinal fluid or plasma.",
+      "status": "draft",
+      "trap": "acid_quench_in_sgf",
+      "verdict": "weak",
+      "teaches": "on average",
+      "win_rate": 0.8125,
+      "gap": 0.03338540124658562,
+      "learner": null
+    },
+    {
+      "env": "gi_fluid_stability",
+      "id": "quench-must-stop-that-enzyme",
+      "said": "Stop gastric samples by neutralising them, not with the acid stop used for intestinal fluid or plasma.",
+      "status": "draft",
+      "trap": "acid_quench_in_sgf_warm_overnight",
+      "verdict": "visible",
+      "teaches": "yes",
+      "win_rate": 1.0,
+      "gap": 0.5931762289149632,
+      "learner": null
+    },
+    {
+      "env": "gi_fluid_stability",
+      "id": "fresh-enzyme-every-run",
+      "said": "Dissolve the pepsin and the pancreatin fresh for every run.",
+      "status": "draft",
+      "trap": "stale_enzyme",
+      "verdict": "visible",
+      "teaches": "yes",
+      "win_rate": 0.92,
+      "gap": 0.42951488203638105,
+      "learner": null
+    },
+    {
+      "env": "gi_fluid_stability",
+      "id": "run-an-activity-control",
+      "said": "Run a control substrate with a known half-life in every fluid, every run.",
+      "status": "draft",
+      "trap": "no_activity_control",
+      "verdict": "visible",
+      "teaches": "yes",
+      "win_rate": 0.995,
+      "gap": 0.4433423723396368,
+      "learner": null
+    },
+    {
+      "env": "gi_fluid_stability",
+      "id": "early-time-points-for-fast-peptides",
+      "said": "Take the first samples within the first few minutes.",
+      "status": "draft",
+      "trap": "late_first_point",
+      "verdict": "weak",
+      "teaches": "on average",
+      "win_rate": 0.87,
+      "gap": 0.08792397780759398,
+      "learner": null
+    },
+    {
+      "env": "gi_fluid_stability",
+      "id": "true-time-zero",
+      "said": "Make time zero by quenching the fluid before the compound meets the enzyme.",
+      "status": "draft",
+      "trap": "no_true_time_zero",
+      "verdict": "weak",
+      "teaches": "on average",
+      "win_rate": 0.785,
+      "gap": 0.022350362125186263,
+      "learner": null
+    },
+    {
+      "env": "gi_fluid_stability",
+      "id": "gi-internal-standard",
+      "said": "Quench into internal standard and read the peptide over it.",
+      "status": "draft",
+      "trap": "no_internal_standard",
+      "verdict": "visible",
+      "teaches": "yes",
+      "win_rate": 0.995,
+      "gap": 0.4806530312511091,
+      "learner": null
+    },
+    {
+      "env": "gi_fluid_stability",
+      "id": "the-enzyme-weakens-during-the-run",
+      "said": "Fit against what the enzyme could still do, not against the clock.",
+      "status": "draft",
+      "trap": "ignore_enzyme_decay",
+      "verdict": "visible",
+      "teaches": "yes",
+      "win_rate": 0.935,
+      "gap": 0.03994615247835309,
       "learner": null
     }
   ]

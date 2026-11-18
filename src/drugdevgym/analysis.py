@@ -7,6 +7,8 @@ from __future__ import annotations
 
 import numpy as np
 
+from .chem import enzyme_exposure
+
 
 MIN_R2 = 0.8  # below this a dose-response fit is treated as "no curve"
 MIN_SPAN = 0.2  # ... and so is a fitted span under this fraction of the control window
@@ -156,3 +158,68 @@ def estimate_half_life(samples: list[dict], use_lloq: bool = True, lloq_frac: fl
             hl = np.log(2.0) / k if k > 1e-9 else hi
         out[cid] = float(np.clip(hl, lo, hi))
     return out
+
+
+def estimate_fluid_half_life(samples: list[dict], activity_half_life_min: dict[str, float] | None = None,
+                             relative_activity: dict[str, float] | None = None, use_lloq: bool = True,
+                             lloq_frac: float = 0.02, lo: float = 1.0, hi: float = 960.0) -> dict[str, dict[str, float]]:
+    """Half-life (min) per compound and per fluid from a time course in enzymatic fluids.
+
+    Every sample names its "fluid"; each compound is fitted in each fluid by log-linear regression.
+    activity_half_life_min (fluid -> minutes) corrects for an enzyme that loses activity during
+    the run: the clock is converted to minutes of digestion at the starting activity
+    (chem.enzyme_exposure) before the fit, so a slow compound is not read too long because the
+    enzyme was weaker at the late time points.
+    relative_activity (fluid -> fraction, from enzyme_activity) then scales the result to
+    specification activity: a digest at 70% activity takes 1/0.7 times as long. A fluid with no
+    usable entry in either mapping is left uncorrected. The clip to lo..hi is applied last.
+
+    The limit of quantification is applied per time point, not per injection: the first time
+    point whose replicate mean is under lloq_frac of the time-zero mean is dropped with every
+    later one. Keeping single replicates that happen to read above the limit would flatten the
+    slope. If only time zero survives, the dropped time point gives an upper bound, reported as is.
+    A compound with no time course or no usable time zero is left out.
+    """
+    out: dict[str, dict[str, float]] = {}
+    for fluid in sorted({s["fluid"] for s in samples}):
+        decay = (activity_half_life_min or {}).get(fluid)
+        scale = (relative_activity or {}).get(fluid)
+        scale = float(scale) if scale is not None and np.isfinite(scale) and scale > 0 else 1.0
+        in_fluid = [s for s in samples if s["fluid"] == fluid]
+        for cid in sorted({s["id"] for s in in_fluid}):
+            rows = [s for s in in_fluid if s["id"] == cid]
+            t = np.array([enzyme_exposure(0.0, s["time_min"], decay) for s in rows], float)
+            y = np.array([response(s) for s in rows], float)
+            t, y = t[np.isfinite(y)], y[np.isfinite(y)]
+            if len(np.unique(t)) < 2:
+                continue
+            y0 = y[t == t.min()].mean()
+            if y0 <= 0:
+                continue
+            keep = y > 0
+            if use_lloq:
+                low = [u for u in np.unique(t) if u > t.min() and y[t == u].mean() <= lloq_frac * y0]
+                if low:
+                    keep &= t < low[0]
+            if len(np.unique(t[keep])) < 2:
+                later = t[(~keep) & (t > t.min())]
+                hl = later.min() / np.log2(1.0 / lloq_frac) if len(later) else float("inf")
+            else:
+                k = -np.polyfit(t[keep], np.log(y[keep]), 1)[0]
+                hl = np.log(2.0) / k if k > 1e-9 else float("inf")
+            out.setdefault(cid, {})[fluid] = float(np.clip(hl * scale, lo, hi))
+    return out
+
+
+def enzyme_activity(samples: list[dict], control_id: str, reference_half_life_min: float,
+                    activity_half_life_min: dict[str, float] | None = None, use_lloq: bool = True,
+                    lloq_frac: float = 0.02) -> dict[str, float]:
+    """Relative enzyme activity per fluid, read from a control substrate run alongside the compounds.
+
+    Activity = the control's reference half-life (at specification activity) over the half-life it
+    showed in this run. 1.0 is a fluid at specification, 0.5 an enzyme that has lost half its
+    activity, 0.0 a control that did not move. A fluid with no usable control time course is left out.
+    """
+    control = [s for s in samples if s["id"] == control_id]
+    fit = estimate_fluid_half_life(control, activity_half_life_min, None, use_lloq, lloq_frac, lo=0.0, hi=float("inf"))
+    return {fluid: float(reference_half_life_min / hl) for fluid, hl in fit.get(control_id, {}).items() if hl > 0}

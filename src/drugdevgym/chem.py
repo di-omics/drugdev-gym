@@ -35,3 +35,26 @@ def hill(conc, ec50: float, n: float = 1.0):
 def remaining(half_life_min: float, minutes: float) -> float:
     """First-order decay: fraction left after `minutes`."""
     return float(0.5 ** (minutes / half_life_min))
+
+
+def q10_factor(temp_c: float, ref_c: float = 37.0, q10: float = 2.0) -> float:
+    """Q10 rule: rate at temp_c relative to the rate at ref_c, q10 ** ((temp_c - ref_c) / 10)."""
+    return float(q10 ** ((temp_c - ref_c) / 10.0))
+
+
+def acid_catalysis_factor(ph: float, ref_ph: float) -> float:
+    """Specific acid catalysis, first order in [H+]: rate at ph relative to the rate at ref_ph."""
+    return float(10.0 ** (ref_ph - ph))
+
+
+def enzyme_exposure(t0: float, t1: float, activity_half_life_min: float | None = None) -> float:
+    """Minutes of digestion at the time-zero activity that the clock interval t0..t1 is worth.
+
+    The enzyme loses activity first order, a(t) = 0.5 ** (t / activity_half_life_min), and a substrate
+    far below Km is digested at a rate proportional to a(t), so its loss depends on the integral of
+    a(t). None means a stable enzyme: the exposure is the clock time.
+    """
+    if activity_half_life_min is None or not np.isfinite(activity_half_life_min):
+        return float(t1 - t0)
+    lam = np.log(2.0) / activity_half_life_min
+    return float((np.exp(-lam * t0) - np.exp(-lam * t1)) / lam)

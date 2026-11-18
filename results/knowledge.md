@@ -1,7 +1,7 @@
 # Expert rules: what the rewards can teach
 
-24 rules, 33 rule-trap pairs. The reward teaches 11 of them (the expert wins on at least 90% of seeds), 17 only on average, is blind to 5, and rewards the mistake in 0.
-24 of the 24 rules are drafts seeded from general bench practice and have not been reviewed by the expert yet.
+31 rules, 41 rule-trap pairs. The reward teaches 16 of them (the expert wins on at least 90% of seeds), 20 only on average, is blind to 5, and rewards the mistake in 0.
+31 of the 31 rules are drafts seeded from general bench practice and have not been reviewed by the expert yet.
 
 | env | rule | status | trap | reward teaches it | expert wins | reward gap |
 |---|---|---|---|---|---|---|
@@ -38,6 +38,14 @@
 | plate_review | Do not repeat a plate that passes its checks. | draft | always_repeat | on average | 75.0% | 0.300 |
 | timecourse_review | Check time zero, the replicates and the control compound before you trust a half-life. | draft | always_accept | on average | 61.0% | 0.132 |
 | timecourse_review | Do not repeat a time course that passes its checks. | draft | always_repeat | on average | 74.0% | 0.288 |
+| gi_fluid_stability | Stop gastric samples by neutralising them, not with the acid stop used for intestinal fluid or plasma. | draft | acid_quench_in_sgf | on average | 81.2% | 0.033 |
+| gi_fluid_stability | Stop gastric samples by neutralising them, not with the acid stop used for intestinal fluid or plasma. | draft | acid_quench_in_sgf_warm_overnight | yes | 100.0% | 0.593 |
+| gi_fluid_stability | Dissolve the pepsin and the pancreatin fresh for every run. | draft | stale_enzyme | yes | 92.0% | 0.430 |
+| gi_fluid_stability | Run a control substrate with a known half-life in every fluid, every run. | draft | no_activity_control | yes | 99.5% | 0.443 |
+| gi_fluid_stability | Take the first samples within the first few minutes. | draft | late_first_point | on average | 87.0% | 0.088 |
+| gi_fluid_stability | Make time zero by quenching the fluid before the compound meets the enzyme. | draft | no_true_time_zero | on average | 78.5% | 0.022 |
+| gi_fluid_stability | Quench into internal standard and read the peptide over it. | draft | no_internal_standard | yes | 99.5% | 0.481 |
+| gi_fluid_stability | Fit against what the enzyme could still do, not against the clock. | draft | ignore_enzyme_decay | yes | 93.5% | 0.040 |
 
 ## What a learner rediscovered from reward alone
 

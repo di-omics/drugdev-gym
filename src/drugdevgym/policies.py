@@ -10,8 +10,9 @@ import itertools
 
 import numpy as np
 
-from .analysis import (analyte_zprime, control_zprime, estimate_half_life, estimate_pec50, fit_4pl, invert_4pl,
-                       zprime)
+from .analysis import (analyte_zprime, control_zprime, enzyme_activity, estimate_fluid_half_life, estimate_half_life,
+                       estimate_pec50, fit_4pl, invert_4pl, zprime)
+from .envs import gi_fluid_stability as gi
 from .envs.lead_opt import OPTIONS, POSITIONS, analog_id, desirability, parse_id
 from .envs.review import PLATE_FAULTS, TIMECOURSE_FAULTS
 from .judges import FixedJudge, ForcedVerdict, PlateJudge, RandomJudge, TimecourseJudge
@@ -334,8 +335,92 @@ TIMECOURSE_REVIEW = {
     "constant_repeat": lambda seed: FixedJudge("repeat", "none"),
 }
 
+# ---------------------------------------------------------------- GI fluid stability
+
+GI_EXPERT = {"timepoints_min": [0, 2, 5, 10, 20, 45, 120, 240], "replicates": 2, "internal_standard": True,
+             "fresh_enzyme": True, "activity_control": True, "prequenched_t0": True, "sgf_quench": "base",
+             "sif_quench": "organic", "hold_min": 30.0, "hold_temp_c": 4.0}
+GI_NULL_GUESS = {"sgf": 60.0, "sif": 10.0}
+GI_WARM_OVERNIGHT = {"hold_min": 960.0, "hold_temp_c": 25.0}  # the quench plate left on the bench until the morning
+GI_TIME_CHOICES = [0, 1, 2, 5, 10, 15, 20, 30, 45, 60, 90, 120, 180, 240]
+
+
+class GiFluidPolicy:
+    """Run one design in the chosen fluids, read the enzyme activity off the control, fit and report.
+
+    correct_decay fits against minutes of digestion at the starting activity instead of the clock,
+    for the compounds and for the control substrate alike; correct_activity scales the result to
+    specification activity with the control substrate.
+    """
+
+    def __init__(self, design: dict | None, fluids=gi.FLUIDS, correct_decay: bool = True, correct_activity: bool = True,
+                 use_lloq: bool = True, pick: np.random.Generator | None = None):
+        self.design = design
+        self.fluids = tuple(fluids)
+        self.flags = {"correct_decay": correct_decay, "correct_activity": correct_activity, "use_lloq": use_lloq}
+        self.pick = pick  # when set, each compound gets its own random set of fluids
+
+    def _fluids(self, compounds: list[str]) -> dict:
+        if self.pick is None:
+            return {c: list(self.fluids) for c in compounds}
+        options = [["sgf"], ["sif"], ["sgf", "sif"]]
+        return {c: options[int(self.pick.integers(len(options)))] for c in compounds}
+
+    def act(self, obs: dict) -> dict:
+        if obs.get("phase") == "start":
+            if self.design is None:
+                return {"type": "report", "half_life_min": {c: dict(GI_NULL_GUESS) for c in obs["compounds"]}}
+            return {"type": "run", "design": {**self.design, "fluids": self._fluids(obs["compounds"])}}
+        if obs.get("phase") == "data":
+            samples, lloq = obs["samples"], self.flags["use_lloq"]
+            decay = gi.ACTIVITY_HL_37C_MIN if self.flags["correct_decay"] else None
+            activity = None
+            if self.flags["correct_activity"]:
+                activity = enzyme_activity(samples, gi.CONTROL_ID, gi.CONTROL_HALF_LIFE_MIN, decay, lloq)
+            compounds = [s for s in samples if s["id"] != gi.CONTROL_ID]
+            return {"type": "report", "half_life_min": estimate_fluid_half_life(compounds, decay, activity, lloq,
+                                                                              lo=gi.HL_LO, hi=gi.HL_HI)}
+        return {"type": "report", "half_life_min": {}}
+
+
+def _gi(**changes):
+    return lambda seed: GiFluidPolicy({**GI_EXPERT, **changes})
+
+
+def _random_gi(seed: int) -> GiFluidPolicy:
+    rng = np.random.default_rng([seed, 99])
+    n = int(rng.integers(2, 9))
+    design = {"timepoints_min": sorted(float(t) for t in rng.choice(GI_TIME_CHOICES, n, replace=False)),
+              "replicates": int(rng.integers(1, 4)), "internal_standard": bool(rng.integers(2)),
+              "fresh_enzyme": bool(rng.integers(2)), "activity_control": bool(rng.integers(2)),
+              "prequenched_t0": bool(rng.integers(2)), "sgf_quench": str(rng.choice(gi.QUENCHES)),
+              "sif_quench": str(rng.choice(gi.QUENCHES)), "hold_min": float(rng.choice([0.0, 30.0, 120.0, 480.0, 960.0])),
+              "hold_temp_c": float(rng.choice([4.0, 10.0, 25.0]))}
+    return GiFluidPolicy(design, correct_decay=bool(rng.integers(2)), correct_activity=bool(rng.integers(2)),
+                         use_lloq=bool(rng.integers(2)), pick=rng)
+
+
+GI_FLUID_STABILITY = {
+    "expert": _gi(),
+    "acid_quench_in_sgf": _gi(sgf_quench="acid"),
+    # the wrong quench plus the wait that lets it act: an interaction, not a single mistake (see GI_INTERACTIONS)
+    "acid_quench_in_sgf_warm_overnight": _gi(sgf_quench="acid", **GI_WARM_OVERNIGHT),
+    "stale_enzyme": _gi(fresh_enzyme=False),
+    "no_activity_control": _gi(activity_control=False),
+    "late_first_point": _gi(timepoints_min=[0, 15, 30, 45, 60, 90, 120, 240]),
+    "no_true_time_zero": _gi(prequenched_t0=False),
+    "no_internal_standard": _gi(internal_standard=False),
+    "ignore_enzyme_decay": lambda seed: GiFluidPolicy(dict(GI_EXPERT), correct_decay=False),  # an analysis choice
+    "random": _random_gi,
+    "null": lambda seed: GiFluidPolicy(None),
+}
+# Labelled interactions: the policy on the left is the single mistake on the right plus GI_WARM_OVERNIGHT.
+# Every other GI trap is the expert with exactly one change.
+GI_INTERACTIONS = {"acid_quench_in_sgf_warm_overnight": "acid_quench_in_sgf"}
+
 POLICIES = {"dose_response": DOSE_RESPONSE, "stability": STABILITY, "assay_window": ASSAY_WINDOW,
-            "lead_opt": LEAD_OPT, "plate_review": PLATE_REVIEW, "timecourse_review": TIMECOURSE_REVIEW}
+            "lead_opt": LEAD_OPT, "plate_review": PLATE_REVIEW, "timecourse_review": TIMECOURSE_REVIEW,
+            "gi_fluid_stability": GI_FLUID_STABILITY}
 
 
 def run_episode(env, policy) -> tuple[float, dict]:
