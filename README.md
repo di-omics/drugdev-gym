@@ -71,6 +71,7 @@ uv venv --python 3.12 .venv && uv pip install -e ".[dev]"
 .venv/bin/drugdev-gym knowledge             # writes results/knowledge.md
 .venv/bin/drugdev-gym cases --env plate_review --balanced --out cases.json   # blind cases for a human expert
 .venv/bin/drugdev-gym score judgments.json --name NAME                       # score their calls against planted truth
+.venv/bin/drugdev-gym rollouts --format sft --min-reward 0.6 --out data.jsonl # training data from the environments
 .venv/bin/pytest -q
 ```
 
@@ -214,6 +215,20 @@ Both learned designs hold up better on the harsh rig than the scripted expert. T
 randomized rigs came out slightly ahead of training on the nominal rig, but this is one
 learner run per condition, so it is not evidence about domain randomization. This is
 sim-to-sim transfer; no hardware is involved. Details: [results/learning.md](results/learning.md).
+
+## Training data
+
+An environment is only useful for post-training if it produces data cheaply.
+`drugdev-gym rollouts` runs policies through the environments and writes JSON lines in two
+shapes: whole episodes (every observation, action and reward, with the hidden truth in the
+final record), or prompt and response pairs for supervised fine-tuning, filtered by reward,
+with the truth never in a prompt. Fifty expert episodes in each of six environments take
+about seven seconds on a laptop.
+
+These rollouts come from scripted policies, so a model fine-tuned on them learns the
+scripted expert and nothing more. They are a starting point and a source of labelled
+negatives (each trap comes with its reward). Real post-training would let the model act in
+the environment and learn from the reward itself; no model has done that here yet.
 
 ## Sim to real: what exists and what does not
 

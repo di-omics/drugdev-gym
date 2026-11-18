@@ -1,4 +1,4 @@
-"""Command line: drugdev-gym list | play | qc | learn | knowledge | cases | score."""
+"""Command line: drugdev-gym list | play | qc | learn | knowledge | cases | score | rollouts."""
 from __future__ import annotations
 
 import argparse
@@ -7,7 +7,7 @@ import math
 import sys
 from pathlib import Path
 
-from . import envqc, human, knowledge, learn
+from . import envqc, human, knowledge, learn, rollouts
 from .policies import DR_EXPERT, POLICIES, run_episode
 from .registry import ENVS, RIGS, make
 
@@ -136,6 +136,14 @@ def _score(args) -> None:
     print(human.markdown(score, args.name))
 
 
+def _rollouts(args) -> None:
+    out = Path(args.out)
+    out.parent.mkdir(parents=True, exist_ok=True)
+    stats = rollouts.write(out, args.env or list(ENVS), args.policy, args.seeds, args.first_seed, args.rig,
+                           args.format, args.min_reward)
+    print(json.dumps(stats, indent=2))
+
+
 def main(argv=None) -> None:
     parser = argparse.ArgumentParser(prog="drugdev-gym", description=__doc__)
     sub = parser.add_subparsers(dest="command", required=True)
@@ -179,6 +187,16 @@ def main(argv=None) -> None:
     p = sub.add_parser("knowledge")
     p.add_argument("--out", default="results")
     p.set_defaults(func=_knowledge)
+    p = sub.add_parser("rollouts", help="write training rollouts (episodes, or prompt and response pairs)")
+    p.add_argument("--env", action="append", choices=list(ENVS))
+    p.add_argument("--policy", action="append", help="policy names to run (default: all registered)")
+    p.add_argument("--seeds", type=_positive, default=100)
+    p.add_argument("--first-seed", type=int, default=100000)
+    p.add_argument("--rig", default="nominal", choices=RIGS)
+    p.add_argument("--format", default="episodes", choices=["episodes", "sft"])
+    p.add_argument("--min-reward", type=float, default=0.0, help="sft only: keep episodes scoring at least this")
+    p.add_argument("--out", required=True)
+    p.set_defaults(func=_rollouts)
     args = parser.parse_args(argv)
     args.func(args)
 
