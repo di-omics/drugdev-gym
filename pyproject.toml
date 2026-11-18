@@ -1,0 +1,23 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "rx-bricks"
+version = "0.1.0"
+description = "Snap-together, simulation-first RL environments for cell assays and drug development"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = ["numpy>=1.26"]
+
+[project.optional-dependencies]
+dev = ["pytest>=8"]
+
+[project.scripts]
+rxbricks = "rxbricks.cli:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/rxbricks"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
