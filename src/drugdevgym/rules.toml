@@ -181,3 +181,35 @@ said = "Run more than one design-make-test round before nominating."
 why = "The first batch only maps the landscape."
 traps = ["one_round"]
 status = "draft"
+
+[[rule]]
+id = "question-the-plate"
+env = "plate_review"
+said = "Check the controls, the replicates and the reference compound before you trust a potency."
+why = "A plate can look complete and still be wrong; the checks are how you tell."
+traps = ["always_accept"]
+status = "draft"
+
+[[rule]]
+id = "do-not-repeat-good-plates"
+env = "plate_review"
+said = "Do not repeat a plate that passes its checks."
+why = "Repeats cost a day and compound; an anomaly that does no harm is not a reason."
+traps = ["always_repeat"]
+status = "draft"
+
+[[rule]]
+id = "question-the-time-course"
+env = "timecourse_review"
+said = "Check time zero, the replicates and the control compound before you trust a half-life."
+why = "A low time zero or a drifting volume changes the slope without looking broken."
+traps = ["always_accept"]
+status = "draft"
+
+[[rule]]
+id = "do-not-repeat-good-time-courses"
+env = "timecourse_review"
+said = "Do not repeat a time course that passes its checks."
+why = "LC-MS time is the bottleneck; a harmless deviation is not a reason."
+traps = ["always_repeat"]
+status = "draft"

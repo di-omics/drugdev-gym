@@ -13,6 +13,8 @@ import numpy as np
 from .analysis import (analyte_zprime, control_zprime, estimate_half_life, estimate_pec50, fit_4pl, invert_4pl,
                        zprime)
 from .envs.lead_opt import OPTIONS, POSITIONS, analog_id, desirability, parse_id
+from .envs.review import PLATE_FAULTS, TIMECOURSE_FAULTS
+from .judges import FixedJudge, PlateJudge, RandomJudge, TimecourseJudge
 
 # ---------------------------------------------------------------- dose response
 
@@ -313,8 +315,23 @@ LEAD_OPT = {
     "null": lambda seed: CampaignPolicy(seed, LO_DR, True, ST_EXPERT, True, rounds=0),
 }
 
+# ---------------------------------------------------------------- review (judgment)
+
+PLATE_REVIEW = {
+    "expert": lambda seed: PlateJudge(),  # scripted QC rules; a human expert's calls are scored separately
+    "always_accept": lambda seed: FixedJudge("accept", "none"),
+    "always_repeat": lambda seed: FixedJudge("repeat", PLATE_FAULTS[1]),
+    "random": lambda seed: RandomJudge(seed, PLATE_FAULTS),
+}
+TIMECOURSE_REVIEW = {
+    "expert": lambda seed: TimecourseJudge(),
+    "always_accept": lambda seed: FixedJudge("accept", "none"),
+    "always_repeat": lambda seed: FixedJudge("repeat", TIMECOURSE_FAULTS[1]),
+    "random": lambda seed: RandomJudge(seed, TIMECOURSE_FAULTS),
+}
+
 POLICIES = {"dose_response": DOSE_RESPONSE, "stability": STABILITY, "assay_window": ASSAY_WINDOW,
-            "lead_opt": LEAD_OPT}
+            "lead_opt": LEAD_OPT, "plate_review": PLATE_REVIEW, "timecourse_review": TIMECOURSE_REVIEW}
 
 
 def run_episode(env, policy) -> tuple[float, dict]:

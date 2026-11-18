@@ -44,7 +44,7 @@ def check_design(design, n_compounds: int) -> tuple[dict | None, str | None]:
 
 
 def simulate_stability(profile: RigProfile, rng: np.random.Generator, half_lives: dict[str, float],
-                       design: dict) -> tuple[list[dict], Rig]:
+                       design: dict, is_sd: float = IS_SD) -> tuple[list[dict], Rig]:
     """Run one validated design. half_lives maps compound id to true half-life in minutes."""
     rig = Rig(profile, rng)
     stock, inc, quench = Plate("stock"), Plate("incubation"), Plate("quench")
@@ -53,7 +53,7 @@ def simulate_stability(profile: RigProfile, rng: np.random.Generator, half_lives
     nominal_t0 = 1000.0 * ALIQUOT_UL  # 1 uM in the matrix, as amount in one aliquot
     wells: list[tuple[str, int, tuple]] = []
     for k, cid in enumerate(half_lives):
-        rig.fill(stock, (k, 0), 100.0, {cid: 1000.0 * (MATRIX_UL + SPIKE_UL) / SPIKE_UL}, what=f"{cid} stock")
+        rig.fill(stock, (k, 0), 300.0, {cid: 1000.0 * (MATRIX_UL + SPIKE_UL) / SPIKE_UL}, what=f"{cid} stock")
         for rep in range(design["replicates"]):
             w = next(inc_free)
             rig.fill(inc, w, MATRIX_UL, what="matrix")
@@ -76,7 +76,7 @@ def simulate_stability(profile: RigProfile, rng: np.random.Generator, half_lives
             area = quench.a(cid)[q] * injection + rng.normal(0.0, NOISE_FLOOR * nominal_t0)
             sample = {"id": cid, "replicate": rep, "time_min": t, "area": round(float(area), 1)}
             if design["internal_standard"]:
-                is_area = quench.a("IS")[q] * 100.0 * injection * (1 + rng.normal(0.0, IS_SD))
+                is_area = quench.a("IS")[q] * 100.0 * injection * max(1 + rng.normal(0.0, is_sd), 0.05)
                 sample["is_area"] = round(float(is_area), 1)
             samples.append(sample)
     return samples, rig

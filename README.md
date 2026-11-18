@@ -57,6 +57,8 @@ flowchart LR
 | `dose_response` | serial dilution design: range, fold, points, transfer volume, mixing, tips, edges, lid, standards, controls | pEC50, Emax, Hill, stickiness of 4 compounds | pEC50 accuracy, halved if the declared plate fails Z' 0.5 |
 | `stability` | time points, replicates, internal standard, mixing, lid, layout | half-lives of 3 compounds | log half-life accuracy, halved if time-zero CV fails |
 | `lead_opt` | which analogs to make each round and how to test them, then one nominee | a 625-analog potency and stability landscape | true desirability of the nominee over the library best |
+| `plate_review` | accept or repeat one finished dose-response plate, and the most likely cause | one planted execution fault, or none | 0.6 for the right verdict, 0.4 for the right cause |
+| `timecourse_review` | the same call on one finished stability time course | one planted execution fault, or none | 0.6 for the right verdict, 0.4 for the right cause |
 
 ## Quick start
 
@@ -67,6 +69,8 @@ uv venv --python 3.12 .venv && uv pip install -e ".[dev]"
 .venv/bin/drugdev-gym qc --seeds 200        # writes results/cards/*.md
 .venv/bin/drugdev-gym learn                 # writes results/learning.md
 .venv/bin/drugdev-gym knowledge             # writes results/knowledge.md
+.venv/bin/drugdev-gym cases --env plate_review --balanced --out cases.json   # blind cases for a human expert
+.venv/bin/drugdev-gym score judgments.json --name NAME                       # score their calls against planted truth
 .venv/bin/pytest -q
 ```
 
@@ -91,12 +95,12 @@ test checks every reference policy's episodes for truth field names.
 
 ## Expert rules: what the rewards can teach
 
-20 rules, 29 rule-trap pairs, 200 seeds each on the nominal rig
-([results/knowledge.md](results/knowledge.md)). **All 20 rules are drafts seeded from general
+24 rules, 33 rule-trap pairs, 200 seeds each on the nominal rig
+([results/knowledge.md](results/knowledge.md)). **All 24 rules are drafts seeded from general
 bench practice. None has been reviewed by an expert yet.**
 
-- The reward teaches 11 pairs outright (the expert wins on at least 90% of seeds).
-- It teaches 13 only on average.
+- The reward teaches 13 pairs outright (the expert wins on at least 90% of seeds).
+- It teaches 15 only on average.
 - It is blind to 5: no lid in `dose_response` and `assay_window`, choosing conditions by
   raw-ratio Z' in `assay_window`, and, inside `lead_opt`, skipping the standard curve or the
   internal standard upstream.
@@ -110,6 +114,40 @@ To add knowledge: write the rule in `rules.toml`, add a trap that breaks only th
 `drugdev-gym qc` and `drugdev-gym knowledge`. Tests refuse a trap no rule explains and a
 dose-response trap that breaks more than its own rule.
 
+## Expert judgment: the review environments
+
+Rules capture what an expert would do. The review environments capture what an expert
+would see. A run was executed from a fixed, sound protocol, possibly with one hidden
+execution fault (an unmixed ladder, a starved ladder, tip carryover, an edge effect, reader
+drift, weak cells; or for a time course an unmixed spike, evaporation, a failed internal
+standard, short aliquots). The reviewer gets the intended protocol, the raw data and the
+known value of one reference compound, and makes one call: accept or repeat, and why.
+
+Truth is known by construction. Repeat is right when the standard analysis of that data
+misses a true value by more than the tolerance or the run fails its own QC, so a fault that
+did no harm should be accepted. The cause is the fault that was planted.
+
+A scripted reviewer that applies plain QC rules ([judges.py](src/drugdevgym/judges.py)) is the
+reference level. On 200 fresh seeds:
+
+| environment | scripted QC rules | always accept | always repeat | verdict right | cause right |
+|---|---|---|---|---|---|
+| `plate_review` | 0.96 | 0.39 | 0.40 | 93.5% | 99.0% |
+| `timecourse_review` | 0.88 | 0.50 | 0.31 | 80.5% | 98.0% |
+
+The scripted rules almost always name the cause. They lose on the verdict: they repeat any
+run with a visible anomaly, and were right on 1 of the 47 runs where a fault was present but
+harmless. Knowing when an anomaly does not matter is the judgment left to teach.
+
+The same cases can be given to a person. `drugdev-gym cases` exports them with no truth
+inside; the expert judges each one blind and says why in their own words;
+`drugdev-gym score` replays those calls through the same environment a model would face.
+Their notes are the raw material for new rules, and any case they flag as unrealistic is a
+simulator to-do. **No human reference has been recorded yet.**
+
+Status: new, and under adversarial review. The scripted reviewer's thresholds were set on
+seeds 0 to 399 and reported on seeds 10000 to 10199.
+
 ## Environment QC
 
 200 seeds per policy, nominal rig, same hidden truth across policies.
@@ -120,6 +158,8 @@ dose-response trap that breaks more than its own rule.
 | `stability` | 0.92 | no internal standard, no mixing after the spike, early-only time points, no lid on edge wells, single replicate (by the QC gate) | two time points, ignoring the limit of quantification, edge wells alone, no lid alone | none |
 | `assay_window` | 0.60 | none | max cells, min cells, kit default, edge wells | no lid, choosing by raw-ratio Z' |
 | `lead_opt` | 0.82 | one round only | no model, upstream no mixing, upstream two-point time course | upstream raw ratio, upstream no internal standard |
+| `plate_review` | 0.96 (scripted QC rules, seeds 10000+) | always repeat | always accept | none |
+| `timecourse_review` | 0.88 (scripted QC rules, seeds 10000+) | always repeat | always accept | none |
 
 What that says, plainly:
 
@@ -211,10 +251,13 @@ The method is supposed to catch its author too. So far:
 - Rewards use a 0.5 log tolerance chosen by hand, not from real assay reproducibility.
 - Lids and edge wells barely matter in the one-hour assays as simulated; that is a gap in
   the simulator, not a finding about lids.
+- The package is open, so anyone holding a task id can recompute its hidden truth. A
+  held-out evaluation needs private seeds.
 
 ## Roadmap
 
-- Expert review of the 20 draft rules, and new rules in the expert's own words.
+- Expert review of the 24 draft rules, and new rules in the expert's own words.
+- A human expert reference for the review environments.
 - More environments: PK, selectivity panel, solubility, hit triage. Each must ship with its card.
 - A PyLabRobot compiler for the worklists.
 - Level 1 and 2 data from [docs/DATA.md](docs/DATA.md): instrument QC, then reference-compound replays.

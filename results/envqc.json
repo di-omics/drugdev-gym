@@ -494,5 +494,109 @@
         "verdict": "visible"
       }
     ]
+  },
+  "plate_review": {
+    "env": "plate_review",
+    "rig": "nominal",
+    "n_seeds": 200,
+    "first_seed": 10000,
+    "rows": [
+      {
+        "policy": "expert",
+        "mean": 0.9570000000000001,
+        "sd": 0.16760506342718934,
+        "p10": 1.0,
+        "p90": 1.0,
+        "qc_pass_rate": null
+      },
+      {
+        "policy": "always_accept",
+        "mean": 0.389,
+        "sd": 0.4749810892823833,
+        "p10": 0.0,
+        "p90": 1.0,
+        "qc_pass_rate": null,
+        "gap": 0.5680000000000001,
+        "zprime": -2.3939409474097144,
+        "win_rate": 0.77,
+        "verdict": "weak"
+      },
+      {
+        "policy": "always_repeat",
+        "mean": 0.40299999999999997,
+        "sd": 0.34639710560838893,
+        "p10": 0.0,
+        "p90": 0.6399999999999977,
+        "qc_pass_rate": null,
+        "gap": 0.554,
+        "zprime": -1.7834052474850806,
+        "win_rate": 0.925,
+        "verdict": "visible"
+      },
+      {
+        "policy": "random",
+        "mean": 0.37099999999999994,
+        "sd": 0.31916820284693564,
+        "p10": 0.0,
+        "p90": 0.6,
+        "qc_pass_rate": null,
+        "gap": 0.5860000000000001,
+        "zprime": -1.4920133085706055,
+        "win_rate": 0.9400000000000001,
+        "verdict": "visible"
+      }
+    ]
+  },
+  "timecourse_review": {
+    "env": "timecourse_review",
+    "rig": "nominal",
+    "n_seeds": 200,
+    "first_seed": 10000,
+    "rows": [
+      {
+        "policy": "expert",
+        "mean": 0.875,
+        "sd": 0.2507776848848017,
+        "p10": 0.4,
+        "p90": 1.0,
+        "qc_pass_rate": null
+      },
+      {
+        "policy": "always_accept",
+        "mean": 0.5,
+        "sd": 0.45057194250961125,
+        "p10": 0.0,
+        "p90": 1.0,
+        "qc_pass_rate": null,
+        "gap": 0.375,
+        "zprime": -4.610797019155303,
+        "win_rate": 0.6125,
+        "verdict": "weak"
+      },
+      {
+        "policy": "always_repeat",
+        "mean": 0.314,
+        "sd": 0.36835093601116514,
+        "p10": 0.0,
+        "p90": 1.0,
+        "qc_pass_rate": null,
+        "gap": 0.5609999999999999,
+        "zprime": -2.310848240085384,
+        "win_rate": 0.9149999999999999,
+        "verdict": "visible"
+      },
+      {
+        "policy": "random",
+        "mean": 0.354,
+        "sd": 0.3304998498543817,
+        "p10": 0.0,
+        "p90": 0.6,
+        "qc_pass_rate": null,
+        "gap": 0.521,
+        "zprime": -2.3470875320874285,
+        "win_rate": 0.8925,
+        "verdict": "weak"
+      }
+    ]
   }
 }

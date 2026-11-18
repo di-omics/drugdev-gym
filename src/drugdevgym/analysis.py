@@ -145,6 +145,8 @@ def estimate_half_life(samples: list[dict], use_lloq: bool = True, lloq_frac: fl
         if len(np.unique(t)) < 2:
             continue  # no time course: leave the compound unanswered rather than guess
         y0 = y[t == t.min()].mean()
+        if y0 <= 0:
+            continue  # no usable time zero
         keep = y > (lloq_frac * y0 if use_lloq else 0.0)
         if len(np.unique(t[keep])) < 2:
             later = t[(~keep) & (t > t.min())]

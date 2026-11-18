@@ -15,8 +15,8 @@ def play(env_name, policy, seed, rig="nominal"):
 
 @pytest.mark.parametrize("env_name", list(ENVS))
 def test_same_seed_same_episode(env_name):
-    assert play(env_name, "expert", 3)[0] == play(env_name, "expert", 3)[0]
-    assert play(env_name, "expert", 3)[0] != play(env_name, "expert", 4)[0]
+    assert play(env_name, "expert", 3) == play(env_name, "expert", 3)
+    assert play(env_name, "expert", 3)[1]["truth"] != play(env_name, "expert", 4)[1]["truth"]
 
 
 EVERY_POLICY = [(name, policy) for name in ENVS for policy in POLICIES[name]]
@@ -29,7 +29,8 @@ def test_observations_are_json_and_never_carry_truth_fields(env_name, policy_nam
     obs, done = env.reset(), False
     while not done:
         json.dumps(obs)  # the whole observation is plain JSON
-        text = json.dumps({k: v for k, v in obs.items() if k != "spec"}).lower()  # spec is public task text
+        public = ("spec", "reference")  # task text, and the reference compound a reviewer is told about
+        text = json.dumps({k: v for k, v in obs.items() if k not in public}).lower()
         assert not any(word in text for word in HIDDEN_WORDS), (env_name, policy_name)
         obs, reward, done, info = env.step(policy.act(obs))
         assert done or info == {}

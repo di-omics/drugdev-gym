@@ -1,9 +1,10 @@
 """Registry: every task is (environment, rig, seed). Tasks are generated, not hand-written."""
 from __future__ import annotations
 
-from .envs import AssayWindow, DoseResponse, LeadOpt, Stability
+from .envs import AssayWindow, DoseResponse, LeadOpt, PlateReview, Stability, TimecourseReview
 
-ENVS = {"assay_window": AssayWindow, "dose_response": DoseResponse, "stability": Stability, "lead_opt": LeadOpt}
+ENVS = {"assay_window": AssayWindow, "dose_response": DoseResponse, "stability": Stability, "lead_opt": LeadOpt,
+        "plate_review": PlateReview, "timecourse_review": TimecourseReview}
 RIGS = ("nominal", "randomized", "harsh")
 
 

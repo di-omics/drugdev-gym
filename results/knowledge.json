@@ -1,9 +1,9 @@
 {
   "summary": {
-    "rule_traps": 29,
-    "rules": 20,
-    "yes": 11,
-    "on average": 13,
+    "rule_traps": 33,
+    "rules": 24,
+    "yes": 13,
+    "on average": 15,
     "no": 5,
     "inverted": 0,
     "checked": 8,
@@ -15,7 +15,7 @@
       "keep-off-the-outer-ring",
       "lid-the-plate"
     ],
-    "draft": 20
+    "draft": 24
   },
   "rows": [
     {
@@ -388,6 +388,54 @@
       "teaches": "yes",
       "win_rate": 0.915,
       "gap": 0.265257706866201,
+      "learner": null
+    },
+    {
+      "env": "plate_review",
+      "id": "question-the-plate",
+      "said": "Check the controls, the replicates and the reference compound before you trust a potency.",
+      "status": "draft",
+      "trap": "always_accept",
+      "verdict": "weak",
+      "teaches": "on average",
+      "win_rate": 0.77,
+      "gap": 0.5680000000000001,
+      "learner": null
+    },
+    {
+      "env": "plate_review",
+      "id": "do-not-repeat-good-plates",
+      "said": "Do not repeat a plate that passes its checks.",
+      "status": "draft",
+      "trap": "always_repeat",
+      "verdict": "visible",
+      "teaches": "yes",
+      "win_rate": 0.925,
+      "gap": 0.554,
+      "learner": null
+    },
+    {
+      "env": "timecourse_review",
+      "id": "question-the-time-course",
+      "said": "Check time zero, the replicates and the control compound before you trust a half-life.",
+      "status": "draft",
+      "trap": "always_accept",
+      "verdict": "weak",
+      "teaches": "on average",
+      "win_rate": 0.6125,
+      "gap": 0.375,
+      "learner": null
+    },
+    {
+      "env": "timecourse_review",
+      "id": "do-not-repeat-good-time-courses",
+      "said": "Do not repeat a time course that passes its checks.",
+      "status": "draft",
+      "trap": "always_repeat",
+      "verdict": "visible",
+      "teaches": "yes",
+      "win_rate": 0.9149999999999999,
+      "gap": 0.5609999999999999,
       "learner": null
     }
   ]
