@@ -36,24 +36,55 @@ model can hill-climb on, and to prove the reward is true before scaling it.
    Rules the reward cannot teach are reported as blind, not hidden.
 
 ```mermaid
-flowchart LR
-  subgraph physical [Physical layer]
-    rig[Liquid handler, incubator, reader<br/>RigProfile = the sim-to-real dials]
+flowchart TB
+  subgraph shared ["Shared layers"]
+    rig["Physical layer: liquid handler, incubator, reader<br/>RigProfile = the sim-to-real dials"]
+    chem["Chemistry layer: Hill response,<br/>competitive TR-FRET, first-order decay"]
   end
-  subgraph chem [Chemistry layer]
-    c[Hill response, competitive TR-FRET,<br/>first-order decay]
+  subgraph environments ["10 environments, one interface"]
+    subgraph potency ["Assay setup and potency"]
+      aw[assay_window]
+      dr[dose_response]
+      gc[gi_camp_potency]
+    end
+    subgraph stab ["Stability"]
+      st[stability]
+      gf[gi_fluid_stability]
+    end
+    subgraph safety ["Selectivity and safety"]
+      sp[selectivity_panel]
+      cw[cytotox_window]
+    end
+    subgraph review ["Review of a finished run"]
+      pr[plate_review]
+      tr[timecourse_review]
+    end
+    lo[lead_opt campaign]
+    dr --> lo
+    st --> lo
+    dr --> sp
+    dr -.-> pr
+    st -.-> tr
   end
-  subgraph environments [Environments]
-    aw[assay_window] -. planned .-> dr[dose_response]
-    dr --> lo[lead_opt campaign]
-    st[stability] --> lo
+  subgraph evaluation ["Evaluation layer"]
+    qc["envqc: expert vs traps,<br/>a card per environment"]
+    kn["knowledge: what the reward<br/>teaches, rule by rule"]
+    ca["campaign: the real data that<br/>would price each mistake"]
+    ba["baseline: a model's reward<br/>and its named mistakes"]
+    qc --> kn
+    qc --> ca
   end
-  rules[Expert rules<br/>one trap per rule] --> qc
-  rig --> environments
-  c --> environments
-  environments --> qc[envqc: expert vs traps<br/>-> card per environment]
-  rig <-.-> real[Real rig: QC data in, worklists out,<br/>gap measurable]
+  rules["Expert rules and their traps<br/>rules.toml, policies.py"]
+  shared --> environments
+  environments --> evaluation
+  rules --> evaluation
+  rig <-.-> real["Real rig: QC data in, worklists out,<br/>gap measurable"]
 ```
+
+Solid arrows inside the environments: `lead_opt` and `selectivity_panel` run on the
+`dose_response` simulator, and `lead_opt` also on the `stability` one. Dotted arrows: each
+review environment judges a finished run of the environment it points from. `envqc` runs the
+traps, and the other 3 evaluation steps read the rules.
 
 ## Environments
 
@@ -107,6 +138,36 @@ obs, reward, done, info = env.step({"type": "report", "pEC50": {"cpd1": 7.2}})
 
 Observations and actions are plain JSON. The hidden truth is never in an observation; a
 test checks every reference policy's episodes for truth field names.
+
+## Where things are
+
+Code is in `src/drugdevgym/`, tests are in `tests/`, and every committed result is in
+`results/`.
+
+| To do this | Command | Code | Tests | Output |
+|---|---|---|---|---|
+| Run or drive one environment | `drugdev-gym list`, `drugdev-gym play`, or `make()` in Python | `registry.py`, `envs/<name>.py` (the 2 review environments share `envs/review.py`), the shared interface in `envs/base.py` | `test_envs.py` (what every environment must do), `test_<name>.py` for the 4 factory-built environments, `test_review.py` | text from `list`, JSON from `play` |
+| Change the simulated rig or the chemistry | none | `rig.py`, `chem.py` | `test_rig.py`; `chem.py` is used by `test_analysis.py` and the environment tests | none |
+| Change an analysis: Z-prime, curve fits, standard curves, half-lives | none | `analysis.py` | `test_analysis.py`, and the factory-built environments' test files | none |
+| Read or change a reference policy: expert, trap or null | `drugdev-gym play ENV --policy NAME` | `policies.py`; the scripted reviewers are in `judges.py` | run by every environment test | printed JSON |
+| Check that a reward can teach (environment QC) | `drugdev-gym qc` | `envqc.py` | `test_qc_learn_sim2real.py` | `results/cards/`, `results/envqc.json` |
+| Read the expert rules, or see what the reward teaches | `drugdev-gym knowledge` | `rules.toml`, `knowledge.py` | `test_knowledge.py` | `results/knowledge.md`, `results/knowledge.json` |
+| Run the small learner | `drugdev-gym learn` | `learn.py` | `test_qc_learn_sim2real.py` | `results/learning.md`, `results/learning.json` |
+| Plan the lab measurements | `drugdev-gym campaign` | `campaign.py` | `test_campaign.py` | `results/campaign.md`, `results/campaign.json`; the plan is explained in [docs/LAB_LOOP.md](docs/LAB_LOOP.md) |
+| Run a language model | `drugdev-gym baseline` | `baseline.py`, `agent.py`, `tools.py` | `test_baseline.py` | `results/baseline/` unless `--out` is given; no run is committed |
+| Export cases for a human expert and score their calls | `drugdev-gym cases`, `drugdev-gym score` | `human.py`, `envs/review.py` | `test_review.py` | the `--out` file, then `results/human/` (ignored by git) |
+| Write training data | `drugdev-gym rollouts` | `rollouts.py` | `test_rollouts.py` | the `--out` file |
+| Connect to a real rig: worklists out, a control plate compared with the simulator | none, Python only | `sim2real.py` | `test_qc_learn_sim2real.py` | none |
+| Add or change a command | none | `cli.py` | only `campaign` and `baseline` are tested through `cli.main`, in their own test files | none |
+
+Test files do not map one to one onto modules. `envqc.py`, `learn.py` and `sim2real.py`
+share one file. `agent.py` and `tools.py` are tested in `test_baseline.py`, `judges.py` and
+`human.py` in `test_review.py`, and the 4 original environments in `test_envs.py`.
+`__main__.py` has no test.
+
+Every assumed physical number is in [docs/ASSUMPTIONS.md](docs/ASSUMPTIONS.md). Every file
+in `results/`, with the command that writes it, is listed in
+[results/README.md](results/README.md).
 
 ## Expert rules: what the rewards can teach
 
