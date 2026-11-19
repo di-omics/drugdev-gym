@@ -497,3 +497,7 @@ A failed gate is a result. Each held environment names the rule its reward canno
 - Close the `gate_bypass` exploit.
 - Close the loop on the environment factory: let agents propose the environments and traps
   too, with the same admission gate.
+
+## Licence
+
+MIT, see [LICENSE](LICENSE).
