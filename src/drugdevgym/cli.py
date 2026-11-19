@@ -1,4 +1,4 @@
-"""Command line: drugdev-gym list | play | qc | learn | knowledge | cases | score | rollouts."""
+"""Command line: drugdev-gym list | play | qc | learn | knowledge | campaign | baseline | cases | score | rollouts."""
 from __future__ import annotations
 
 import argparse
@@ -7,7 +7,7 @@ import math
 import sys
 from pathlib import Path
 
-from . import envqc, human, knowledge, learn, rollouts
+from . import agent, baseline, campaign, envqc, human, knowledge, learn, rollouts
 from .policies import DR_EXPERT, POLICIES, run_episode
 from .registry import ENVS, RIGS, make
 
@@ -103,6 +103,63 @@ def _knowledge(args) -> None:
     print(knowledge.markdown(rows))
 
 
+CAMPAIGN_DEFAULTS = {"seeds": 3, "sd": 0.15, "delta": 0.25, "alpha": 0.05, "power": 0.8}
+
+
+def _campaign(args) -> None:
+    try:  # a bad number should fail before any episode is simulated
+        campaign.pairs_per_arm(args.sd, args.delta, args.alpha, args.power)
+    except (ValueError, ArithmeticError) as err:
+        raise SystemExit(f"campaign: {err}")
+    cards_path, out = Path(args.cards), Path(args.out)
+    try:
+        cards = json.loads(cards_path.read_text())
+    except OSError:
+        raise SystemExit(f"campaign: no QC cards at {cards_path}; run `drugdev-gym qc` first or give --cards")
+    except ValueError:
+        raise SystemExit(f"campaign: {cards_path} is not JSON")
+    if not isinstance(cards, dict):
+        raise SystemExit(f"campaign: {cards_path} does not hold QC cards")
+    other = [f"--{name}" for name, value in CAMPAIGN_DEFAULTS.items() if getattr(args, name) != value]
+    if other and out.resolve() == Path("results").resolve():  # results/ holds the committed report
+        raise SystemExit(f"campaign: {', '.join(other)} is not the default; give --out so results/ keeps the committed report")
+    if out.exists() and not out.is_dir():
+        raise SystemExit(f"campaign: {out} is not a directory")
+    plan = campaign.plan(cards, seeds=range(args.seeds), sd_within=args.sd, delta=args.delta, alpha=args.alpha,
+                         power=args.power)
+    out.mkdir(parents=True, exist_ok=True)
+    (out / "campaign.md").write_text(campaign.markdown(plan))
+    (out / "campaign.json").write_text(json.dumps(_plain(plan), indent=2) + "\n")
+    print(campaign.markdown(plan))
+
+
+def _baseline(args) -> None:
+    envs = args.env or list(ENVS)
+    try:
+        make_model = agent.model_factory(args.model, args.max_tokens, args.effort)
+        for env_name in envs:  # a scripted policy has to exist in every environment asked for
+            make_model(env_name, args.first_seed)
+    except (ValueError, RuntimeError) as err:
+        raise SystemExit(f"baseline: {err}")
+    name = args.name or args.model.replace(":", "_").replace("/", "_")
+    if "/" in name or "\\" in name:
+        raise SystemExit("baseline: --name must be a plain name")
+    planned = len(envs) * args.tasks * args.attempts
+    print(f"{planned} episodes of {args.model}: {len(envs)} environments x {args.tasks} tasks x {args.attempts} attempts, "
+          f"up to {agent.MAX_TURNS} model replies each", file=sys.stderr)
+    episodes = baseline.run(make_model, envs, args.tasks, args.attempts, args.first_seed, args.rig, not args.no_tools,
+                            log=lambda line: print(line, file=sys.stderr))
+    out = Path(args.out)
+    out.mkdir(parents=True, exist_ok=True)
+    with open(out / f"{name}.transcripts.jsonl", "w") as handle:
+        for episode in episodes:
+            handle.write(json.dumps(episode) + "\n")
+    report = baseline.profile(episodes, args.pass_at)
+    (out / f"{name}.json").write_text(json.dumps(_plain(report), indent=2) + "\n")
+    (out / f"{name}.md").write_text(baseline.markdown(report))
+    print(baseline.markdown(report))
+
+
 def _cases(args) -> None:
     seeds = human.balanced_seeds(args.env, args.first_seed, args.clean, args.per_fault) if args.balanced else None
     data = human.export_cases(args.env, args.n, args.first_seed, seeds=seeds)
@@ -187,6 +244,32 @@ def main(argv=None) -> None:
     p = sub.add_parser("knowledge")
     p.add_argument("--out", default="results")
     p.set_defaults(func=_knowledge)
+    p = sub.add_parser("campaign", help="sort every mistake by the real data that would price it")
+    d = CAMPAIGN_DEFAULTS
+    p.add_argument("--seeds", type=_positive, default=d["seeds"], help="seeds used to compare each trap with the expert")
+    p.add_argument("--sd", type=float, default=d["sd"], help="assumed scatter of one run within a day, log10 units")
+    p.add_argument("--delta", type=float, default=d["delta"], help="smallest mean shift worth seeing in a paired run, log10 units")
+    p.add_argument("--alpha", type=float, default=d["alpha"])
+    p.add_argument("--power", type=float, default=d["power"])
+    p.add_argument("--cards", default="results/envqc.json", help="QC cards to read (written by `drugdev-gym qc`)")
+    p.add_argument("--out", default="results", help="where campaign.md and campaign.json go; with any number changed "
+                                                    "from its default, --out has to be given")
+    p.set_defaults(func=_campaign)
+    p = sub.add_parser("baseline", help="run a model over seeded tasks: its reward and which named mistakes it makes")
+    p.add_argument("--model", required=True, help='"anthropic:<model id>" (needs the SDK and credentials; this spends '
+                                                  'money) or "scripted:<policy>" for a dry run')
+    p.add_argument("--env", action="append", choices=list(ENVS))
+    p.add_argument("--tasks", type=_positive, default=20, help="seeded tasks per environment")
+    p.add_argument("--attempts", type=_positive, default=1, help="attempts per task")
+    p.add_argument("--first-seed", type=int, default=baseline.FIRST_SEED)
+    p.add_argument("--rig", default="nominal", choices=RIGS)
+    p.add_argument("--no-tools", action="store_true", help="do not offer the analysis tools")
+    p.add_argument("--pass-at", type=float, default=baseline.PASS_AT, help="the reward line reported as a pass rate")
+    p.add_argument("--max-tokens", type=_positive, default=16000)
+    p.add_argument("--effort", choices=["low", "medium", "high", "xhigh", "max"], help="the model's effort setting, if any")
+    p.add_argument("--name", help="file name for the report (default: from --model)")
+    p.add_argument("--out", default="results/baseline")
+    p.set_defaults(func=_baseline)
     p = sub.add_parser("rollouts", help="write training rollouts (episodes, or prompt and response pairs)")
     p.add_argument("--env", action="append", choices=list(ENVS))
     p.add_argument("--policy", action="append", help="policy names to run (default: all registered)")

@@ -34,18 +34,24 @@ Simulation gives 1 and 3 for free and fakes 2. Real data is needed mostly to fix
 **Both, and the part almost nobody publishes**
 
 - **Failure-mode runs.** The same protocol run wrong on purpose: no mix, reused tips, open
-  edges, a starved ladder, no internal standard. These are what calibrate the traps, and the
-  traps are what make a reward worth training on.
+  edges, a starved ladder, no internal standard. These confirm the traps and are review cases
+  with a real planted cause. [LAB_LOOP.md](LAB_LOOP.md) says which mistakes can be priced
+  without one.
 
 ## Ways to generate it, in the order I would do them
 
 | level | modality | gives | cost |
 |---|---|---|---|
 | 0 | Mechanistic simulation (this repo) | unlimited seeded tasks, exact truth | none |
-| 1 | Instrument QC on the real rig: dye or gravimetric volume checks, uniformity plates | the RigProfile numbers | about a day of robot time, no compounds |
-| 2 | Reference replays: public tool compounds with literature potency on a commercial kit, run with the expert protocol and each trap | the sim-to-real gap per environment (sim2real.gap), tolerance from real reproducibility | a few plates |
+| 1 | Instrument QC on the real rig: dye or gravimetric volume checks, uniformity plates | the RigProfile numbers | about a day for the volume checks and 3 days for the uniformity study, no compounds |
+| 2 | Reference replays: public reference compounds on a commercial kit, run with the expert protocol on several days, and the traps that need a run of their own | the sim-to-real gap per environment (sim2real.gap), tolerance from real reproducibility | reference runs on 6 or more days, condition grids on 3 or more |
 | 3 | Public data for the truth distribution: potency and stability value ranges, matched pairs for how rough SAR is | realistic hidden landscapes | none |
 | 4 | Real-in-the-loop episodes: replay recorded runs (offline), or queue a real plate per episode | a held-out real test set | slow, expensive, small |
+
+Level 2 does not need every trap run for real. [LAB_LOOP.md](LAB_LOOP.md) sorts the traps by
+the kind of choice each one changes. Some are priced by a complete record of a correct run,
+some by a grid repeated over days, and the handling mistakes by measuring directly what they
+change on the rig, with paired runs only as a confirmation.
 
 The useful ratio is a lot of level 0, a little of levels 1 and 2 chosen to calibrate it, and
 level 4 kept as the exam rather than the training set. RL needs far more attempts than a lab

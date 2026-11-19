@@ -1,0 +1,1891 @@
+{
+  "rows": [
+    {
+      "env": "dose_response",
+      "id": "mix-every-ladder-step",
+      "said": "Mix after every transfer in a serial dilution.",
+      "trap": "no_mix",
+      "moot": false,
+      "kind": "handling",
+      "group": "rig",
+      "priced_by": "the physical quantity it changes, measured directly on the rig; then a few same-day paired runs",
+      "needs": "a dye ladder with and without mixing",
+      "also": null,
+      "upstream_of": null,
+      "teaches": "yes",
+      "win_rate": 0.995,
+      "changes": [
+        "mix"
+      ],
+      "differs_on": 3,
+      "wells": 60.0,
+      "samples": 0.0,
+      "rig_runs": 1.0
+    },
+    {
+      "env": "dose_response",
+      "id": "fresh-tip-every-transfer",
+      "said": "Change tips between ladder steps.",
+      "trap": "reuse_tips",
+      "moot": false,
+      "kind": "handling",
+      "group": "rig",
+      "priced_by": "the physical quantity it changes, measured directly on the rig; then a few same-day paired runs",
+      "needs": "the ladder wells of a sticky reference compound read by LC-MS, with fresh and reused tips; a dye does not stick to a tip",
+      "also": null,
+      "upstream_of": null,
+      "teaches": "on average",
+      "win_rate": 0.63,
+      "changes": [
+        "new_tips"
+      ],
+      "differs_on": 3,
+      "wells": 60.0,
+      "samples": 0.0,
+      "rig_runs": 1.0
+    },
+    {
+      "env": "dose_response",
+      "id": "keep-off-the-outer-ring",
+      "said": "Keep assay wells off the outer ring.",
+      "trap": "edge_wells",
+      "moot": false,
+      "kind": "position",
+      "group": "rig",
+      "priced_by": "uniformity plates and a split layout on one plate",
+      "needs": "uniformity plates and a split inner and outer layout",
+      "also": null,
+      "upstream_of": null,
+      "teaches": "on average",
+      "win_rate": 0.695,
+      "changes": [
+        "avoid_edges"
+      ],
+      "differs_on": 3,
+      "wells": 60.0,
+      "samples": 0.0,
+      "rig_runs": 1.0
+    },
+    {
+      "env": "dose_response",
+      "id": "lid-the-plate",
+      "said": "Lid the plate during the 37 C incubation.",
+      "trap": "no_lid",
+      "moot": true,
+      "kind": "handling",
+      "group": "rig",
+      "priced_by": "the physical quantity it changes, measured directly on the rig; then a few same-day paired runs",
+      "needs": null,
+      "also": null,
+      "upstream_of": null,
+      "teaches": "no",
+      "win_rate": 0.47,
+      "changes": [
+        "lid"
+      ],
+      "differs_on": 3,
+      "wells": 60.0,
+      "samples": 0.0,
+      "rig_runs": 1.0
+    },
+    {
+      "env": "dose_response",
+      "id": "read-through-the-standard-curve",
+      "said": "Convert the ratio to analyte through the standard curve before fitting potency.",
+      "trap": "raw_ratio",
+      "moot": false,
+      "kind": "data",
+      "group": "records",
+      "priced_by": "a record of a correct run designed for it, with the same data left out",
+      "needs": null,
+      "also": null,
+      "upstream_of": null,
+      "teaches": "yes",
+      "win_rate": 1.0,
+      "changes": [
+        "standards"
+      ],
+      "differs_on": 3,
+      "wells": 52.0,
+      "samples": 0.0,
+      "rig_runs": 1.0
+    },
+    {
+      "env": "dose_response",
+      "id": "span-the-whole-curve",
+      "said": "Dose wide enough to see both plateaus when you do not know the potency.",
+      "trap": "narrow_range",
+      "moot": false,
+      "kind": "dose",
+      "group": "grids",
+      "priced_by": "a dense grid of concentrations where every well is dosed on its own; on a serial ladder, a second ladder",
+      "needs": "on a serial ladder this is a second ladder, run beside the first",
+      "also": {
+        "transfer_ul": "keeps the wells of the 2-fold ladder above the dead volume"
+      },
+      "upstream_of": null,
+      "teaches": "yes",
+      "win_rate": 0.97,
+      "changes": [
+        "dilution_factor",
+        "n_points",
+        "top_conc_nM",
+        "transfer_ul"
+      ],
+      "differs_on": 3,
+      "wells": 52.0,
+      "samples": 0.0,
+      "rig_runs": 1.0
+    },
+    {
+      "env": "dose_response",
+      "id": "respect-dead-volume",
+      "said": "A ladder well has to hold everything you will take out of it, plus the dead volume.",
+      "trap": "thin_ladder",
+      "moot": false,
+      "kind": "handling",
+      "group": "rig",
+      "priced_by": "the physical quantity it changes, measured directly on the rig; then a few same-day paired runs",
+      "needs": "a dye ladder at the small and the large transfer volume",
+      "also": null,
+      "upstream_of": null,
+      "teaches": "yes",
+      "win_rate": 1.0,
+      "changes": [
+        "transfer_ul"
+      ],
+      "differs_on": 3,
+      "wells": 60.0,
+      "samples": 0.0,
+      "rig_runs": 1.0
+    },
+    {
+      "env": "dose_response",
+      "id": "enough-controls",
+      "said": "Put enough negative and positive controls on every plate to compute a Z-prime.",
+      "trap": "few_controls",
+      "moot": false,
+      "kind": "qc",
+      "group": "faults",
+      "priced_by": "the same item left out of runs that carry a fault or a liability, and how often faults happen",
+      "needs": "a run with a planted cell, reader or reagent fault; a ladder mistake does not touch the control wells, so the handling arms cannot show it",
+      "also": null,
+      "upstream_of": null,
+      "teaches": "yes",
+      "win_rate": 0.995,
+      "changes": [
+        "controls_per_side"
+      ],
+      "differs_on": 3,
+      "wells": 52.0,
+      "samples": 0.0,
+      "rig_runs": 1.0
+    },
+    {
+      "env": "stability",
+      "id": "internal-standard",
+      "said": "Quench into internal standard and read the analyte over it.",
+      "trap": "no_internal_standard",
+      "moot": false,
+      "kind": "data",
+      "group": "records",
+      "priced_by": "a record of a correct run designed for it, with the same data left out",
+      "needs": "a fixed injection order: the price holds for that order only",
+      "also": null,
+      "upstream_of": null,
+      "teaches": "yes",
+      "win_rate": 0.99,
+      "changes": [
+        "internal_standard"
+      ],
+      "differs_on": 3,
+      "wells": 0.0,
+      "samples": 48.0,
+      "rig_runs": 1.0
+    },
+    {
+      "env": "stability",
+      "id": "mix-after-spike",
+      "said": "Mix the matrix after spiking, before the time-zero sample.",
+      "trap": "no_mix",
+      "moot": false,
+      "kind": "handling",
+      "group": "rig",
+      "priced_by": "the physical quantity it changes, measured directly on the rig; then a few same-day paired runs",
+      "needs": "time-zero samples alone, mixed and unmixed",
+      "also": null,
+      "upstream_of": null,
+      "teaches": "yes",
+      "win_rate": 1.0,
+      "changes": [
+        "mix_after_spike"
+      ],
+      "differs_on": 3,
+      "wells": 0.0,
+      "samples": 48.0,
+      "rig_runs": 1.0
+    },
+    {
+      "env": "stability",
+      "id": "cover-long-incubations",
+      "said": "Lid the incubation plate and stay off the outer ring for hours-long time courses.",
+      "trap": "no_lid",
+      "moot": true,
+      "kind": "handling",
+      "group": "rig",
+      "priced_by": "the physical quantity it changes, measured directly on the rig; then a few same-day paired runs",
+      "needs": null,
+      "also": null,
+      "upstream_of": null,
+      "teaches": "on average",
+      "win_rate": 0.69,
+      "changes": [
+        "lid"
+      ],
+      "differs_on": 3,
+      "wells": 0.0,
+      "samples": 48.0,
+      "rig_runs": 1.0
+    },
+    {
+      "env": "stability",
+      "id": "cover-long-incubations",
+      "said": "Lid the incubation plate and stay off the outer ring for hours-long time courses.",
+      "trap": "edge_wells",
+      "moot": false,
+      "kind": "position",
+      "group": "rig",
+      "priced_by": "uniformity plates and a split layout on one plate",
+      "needs": "a stable marker compound in inner and outer wells of the incubation plate; there is no plate read here, so the uniformity study does not cover it",
+      "also": null,
+      "upstream_of": null,
+      "teaches": "on average",
+      "win_rate": 0.66,
+      "changes": [
+        "avoid_edges"
+      ],
+      "differs_on": 3,
+      "wells": 0.0,
+      "samples": 48.0,
+      "rig_runs": 1.0
+    },
+    {
+      "env": "stability",
+      "id": "cover-long-incubations",
+      "said": "Lid the incubation plate and stay off the outer ring for hours-long time courses.",
+      "trap": "no_lid_on_edge_wells",
+      "moot": false,
+      "kind": "handling",
+      "group": "rig",
+      "priced_by": "the physical quantity it changes, measured directly on the rig; then a few same-day paired runs",
+      "needs": "plate weights or a stable marker in the matrix; and the expert's answer first, since the lid alone is ruled moot",
+      "also": {
+        "avoid_edges": "the mistake is the 2 together"
+      },
+      "upstream_of": null,
+      "teaches": "yes",
+      "win_rate": 0.98,
+      "changes": [
+        "avoid_edges",
+        "lid"
+      ],
+      "differs_on": 3,
+      "wells": 0.0,
+      "samples": 48.0,
+      "rig_runs": 1.0
+    },
+    {
+      "env": "stability",
+      "id": "time-points-for-fast-and-slow",
+      "said": "Spread time points so both a five-minute and a five-hour half-life leave several usable points.",
+      "trap": "two_point",
+      "moot": false,
+      "kind": "data",
+      "group": "records",
+      "priced_by": "a record of a correct run designed for it, with the same data left out",
+      "needs": "one well per time point or a large incubation, and the real quench time of every sample",
+      "also": null,
+      "upstream_of": null,
+      "teaches": "on average",
+      "win_rate": 0.855,
+      "changes": [
+        "timepoints_min"
+      ],
+      "differs_on": 3,
+      "wells": 0.0,
+      "samples": 12.0,
+      "rig_runs": 1.0
+    },
+    {
+      "env": "stability",
+      "id": "time-points-for-fast-and-slow",
+      "said": "Spread time points so both a five-minute and a five-hour half-life leave several usable points.",
+      "trap": "early_only",
+      "moot": false,
+      "kind": "data",
+      "group": "records",
+      "priced_by": "a record of a correct run designed for it, with the same data left out",
+      "needs": "one well per time point or a large incubation, and the real quench time of every sample",
+      "also": null,
+      "upstream_of": null,
+      "teaches": "yes",
+      "win_rate": 0.9,
+      "changes": [
+        "timepoints_min"
+      ],
+      "differs_on": 3,
+      "wells": 0.0,
+      "samples": 36.0,
+      "rig_runs": 1.0
+    },
+    {
+      "env": "stability",
+      "id": "replicate-incubations",
+      "said": "Run at least two incubation wells per compound.",
+      "trap": "single_replicate",
+      "moot": false,
+      "kind": "qc",
+      "group": "faults",
+      "priced_by": "the same item left out of runs that carry a fault or a liability, and how often faults happen",
+      "needs": "runs with an unmixed spike, to see whether one replicate still flags them",
+      "also": null,
+      "upstream_of": null,
+      "teaches": "yes",
+      "win_rate": 1.0,
+      "changes": [
+        "replicates"
+      ],
+      "differs_on": 3,
+      "wells": 0.0,
+      "samples": 24.0,
+      "rig_runs": 1.0
+    },
+    {
+      "env": "stability",
+      "id": "respect-the-lloq",
+      "said": "Drop points below the limit of quantification before fitting.",
+      "trap": "no_lloq",
+      "moot": false,
+      "kind": "reading",
+      "group": "records",
+      "priced_by": "a complete raw record of a correct run, read again",
+      "needs": "blanks and low calibrators, so the limit of quantification is measured",
+      "also": null,
+      "upstream_of": null,
+      "teaches": "on average",
+      "win_rate": 0.875,
+      "changes": [],
+      "differs_on": 0,
+      "wells": 0.0,
+      "samples": 48.0,
+      "rig_runs": 1.0
+    },
+    {
+      "env": "assay_window",
+      "id": "titrate-the-cells",
+      "said": "Titrate cell density; do not assume more cells or the kit default is right.",
+      "trap": "max_cells",
+      "moot": false,
+      "kind": "condition",
+      "group": "grids",
+      "priced_by": "a grid of assay conditions, repeated over days and cell batches",
+      "needs": null,
+      "also": null,
+      "upstream_of": null,
+      "teaches": "on average",
+      "win_rate": 0.64,
+      "changes": [
+        "-run_pilot",
+        "cells_k",
+        "stim_min"
+      ],
+      "differs_on": 3,
+      "wells": 40.0,
+      "samples": 0.0,
+      "rig_runs": 1.0
+    },
+    {
+      "env": "assay_window",
+      "id": "titrate-the-cells",
+      "said": "Titrate cell density; do not assume more cells or the kit default is right.",
+      "trap": "min_cells",
+      "moot": false,
+      "kind": "condition",
+      "group": "grids",
+      "priced_by": "a grid of assay conditions, repeated over days and cell batches",
+      "needs": null,
+      "also": null,
+      "upstream_of": null,
+      "teaches": "on average",
+      "win_rate": 0.735,
+      "changes": [
+        "-run_pilot",
+        "cells_k",
+        "stim_min"
+      ],
+      "differs_on": 3,
+      "wells": 40.0,
+      "samples": 0.0,
+      "rig_runs": 1.0
+    },
+    {
+      "env": "assay_window",
+      "id": "titrate-the-cells",
+      "said": "Titrate cell density; do not assume more cells or the kit default is right.",
+      "trap": "kit_default",
+      "moot": false,
+      "kind": "condition",
+      "group": "grids",
+      "priced_by": "a grid of assay conditions, repeated over days and cell batches",
+      "needs": null,
+      "also": null,
+      "upstream_of": null,
+      "teaches": "on average",
+      "win_rate": 0.675,
+      "changes": [
+        "-run_pilot",
+        "cells_k",
+        "stim_min"
+      ],
+      "differs_on": 3,
+      "wells": 40.0,
+      "samples": 0.0,
+      "rig_runs": 1.0
+    },
+    {
+      "env": "assay_window",
+      "id": "judge-the-window-in-analyte-units",
+      "said": "Judge the assay window after back-calculation, not on the raw ratio.",
+      "trap": "raw_ratio_zprime",
+      "moot": false,
+      "kind": "condition",
+      "group": "grids",
+      "priced_by": "a grid of assay conditions, repeated over days and cell batches",
+      "needs": "what the trap changes is how the pilots are read; the condition it commits follows from that, and on some seeds it is the expert's",
+      "also": null,
+      "upstream_of": null,
+      "teaches": "no",
+      "win_rate": 0.49,
+      "changes": [
+        "cells_k",
+        "stim_min"
+      ],
+      "differs_on": 3,
+      "wells": 216.0,
+      "samples": 0.0,
+      "rig_runs": 3.0
+    },
+    {
+      "env": "assay_window",
+      "id": "validate-as-you-will-run",
+      "said": "Validate with the lid on and off the outer ring, the way the screen will run.",
+      "trap": "no_lid",
+      "moot": true,
+      "kind": "handling",
+      "group": "rig",
+      "priced_by": "the physical quantity it changes, measured directly on the rig; then a few same-day paired runs",
+      "needs": null,
+      "also": null,
+      "upstream_of": null,
+      "teaches": "no",
+      "win_rate": 0.595,
+      "changes": [
+        "lid"
+      ],
+      "differs_on": 3,
+      "wells": 216.0,
+      "samples": 0.0,
+      "rig_runs": 3.0
+    },
+    {
+      "env": "assay_window",
+      "id": "validate-as-you-will-run",
+      "said": "Validate with the lid on and off the outer ring, the way the screen will run.",
+      "trap": "edge_wells",
+      "moot": false,
+      "kind": "position",
+      "group": "rig",
+      "priced_by": "uniformity plates and a split layout on one plate",
+      "needs": "uniformity plates and a split inner and outer layout",
+      "also": null,
+      "upstream_of": null,
+      "teaches": "on average",
+      "win_rate": 0.805,
+      "changes": [
+        "avoid_edges"
+      ],
+      "differs_on": 3,
+      "wells": 216.0,
+      "samples": 0.0,
+      "rig_runs": 3.0
+    },
+    {
+      "env": "lead_opt",
+      "id": "measure-well-before-you-rank",
+      "said": "Do not rank analogs on a sloppy assay.",
+      "trap": "upstream_no_mix",
+      "moot": false,
+      "kind": "upstream",
+      "group": "not_a_plate",
+      "priced_by": "the size of the error from its own assay environment; what it costs a campaign, only from a campaign",
+      "needs": null,
+      "also": null,
+      "upstream_of": "dose_response/no_mix",
+      "teaches": "on average",
+      "win_rate": 0.6325000000000001,
+      "changes": [
+        "analogs",
+        "dose_response.mix"
+      ],
+      "differs_on": 3,
+      "wells": 320.0,
+      "samples": 384.0,
+      "rig_runs": 4.0
+    },
+    {
+      "env": "lead_opt",
+      "id": "measure-well-before-you-rank",
+      "said": "Do not rank analogs on a sloppy assay.",
+      "trap": "upstream_raw_ratio",
+      "moot": false,
+      "kind": "upstream",
+      "group": "not_a_plate",
+      "priced_by": "the size of the error from its own assay environment; what it costs a campaign, only from a campaign",
+      "needs": null,
+      "also": null,
+      "upstream_of": "dose_response/raw_ratio",
+      "teaches": "no",
+      "win_rate": 0.34,
+      "changes": [
+        "analogs",
+        "dose_response.standards"
+      ],
+      "differs_on": 3,
+      "wells": 288.0,
+      "samples": 384.0,
+      "rig_runs": 4.0
+    },
+    {
+      "env": "lead_opt",
+      "id": "measure-well-before-you-rank",
+      "said": "Do not rank analogs on a sloppy assay.",
+      "trap": "upstream_two_point",
+      "moot": false,
+      "kind": "upstream",
+      "group": "not_a_plate",
+      "priced_by": "the size of the error from its own assay environment; what it costs a campaign, only from a campaign",
+      "needs": null,
+      "also": null,
+      "upstream_of": "stability/two_point",
+      "teaches": "on average",
+      "win_rate": 0.61,
+      "changes": [
+        "analogs",
+        "stability.timepoints_min"
+      ],
+      "differs_on": 3,
+      "wells": 320.0,
+      "samples": 96.0,
+      "rig_runs": 4.0
+    },
+    {
+      "env": "lead_opt",
+      "id": "measure-well-before-you-rank",
+      "said": "Do not rank analogs on a sloppy assay.",
+      "trap": "upstream_no_internal_standard",
+      "moot": false,
+      "kind": "upstream",
+      "group": "not_a_plate",
+      "priced_by": "the size of the error from its own assay environment; what it costs a campaign, only from a campaign",
+      "needs": null,
+      "also": null,
+      "upstream_of": "stability/no_internal_standard",
+      "teaches": "no",
+      "win_rate": 0.54,
+      "changes": [
+        "analogs",
+        "stability.internal_standard"
+      ],
+      "differs_on": 3,
+      "wells": 320.0,
+      "samples": 384.0,
+      "rig_runs": 4.0
+    },
+    {
+      "env": "lead_opt",
+      "id": "learn-from-each-round",
+      "said": "Use what each round taught you to choose the next analogs.",
+      "trap": "no_model",
+      "moot": false,
+      "kind": "strategy",
+      "group": "not_a_plate",
+      "priced_by": "a whole campaign of experiments, not a plate",
+      "needs": null,
+      "also": null,
+      "upstream_of": null,
+      "teaches": "on average",
+      "win_rate": 0.895,
+      "changes": [
+        "analogs"
+      ],
+      "differs_on": 3,
+      "wells": 320.0,
+      "samples": 384.0,
+      "rig_runs": 4.0
+    },
+    {
+      "env": "lead_opt",
+      "id": "iterate",
+      "said": "Run more than one design-make-test round before nominating.",
+      "trap": "one_round",
+      "moot": false,
+      "kind": "strategy",
+      "group": "not_a_plate",
+      "priced_by": "a whole campaign of experiments, not a plate",
+      "needs": null,
+      "also": null,
+      "upstream_of": null,
+      "teaches": "yes",
+      "win_rate": 0.915,
+      "changes": [
+        "-make_test"
+      ],
+      "differs_on": 3,
+      "wells": 80.0,
+      "samples": 96.0,
+      "rig_runs": 1.0
+    },
+    {
+      "env": "plate_review",
+      "id": "question-the-plate",
+      "said": "Check the controls, the replicates and the reference compound before you trust a potency.",
+      "trap": "always_accept",
+      "moot": false,
+      "kind": "judgment",
+      "group": "not_a_plate",
+      "priced_by": "review cases with a planted answer, not a new run",
+      "needs": null,
+      "also": null,
+      "upstream_of": null,
+      "teaches": "on average",
+      "win_rate": 0.7050000000000001,
+      "changes": [],
+      "differs_on": 0,
+      "wells": 0.0,
+      "samples": 0.0,
+      "rig_runs": 0.0
+    },
+    {
+      "env": "plate_review",
+      "id": "do-not-repeat-good-plates",
+      "said": "Do not repeat a plate that passes its checks.",
+      "trap": "always_repeat",
+      "moot": false,
+      "kind": "judgment",
+      "group": "not_a_plate",
+      "priced_by": "review cases with a planted answer, not a new run",
+      "needs": null,
+      "also": null,
+      "upstream_of": null,
+      "teaches": "on average",
+      "win_rate": 0.75,
+      "changes": [],
+      "differs_on": 0,
+      "wells": 0.0,
+      "samples": 0.0,
+      "rig_runs": 0.0
+    },
+    {
+      "env": "timecourse_review",
+      "id": "question-the-time-course",
+      "said": "Check time zero, the replicates and the control compound before you trust a half-life.",
+      "trap": "always_accept",
+      "moot": false,
+      "kind": "judgment",
+      "group": "not_a_plate",
+      "priced_by": "review cases with a planted answer, not a new run",
+      "needs": null,
+      "also": null,
+      "upstream_of": null,
+      "teaches": "on average",
+      "win_rate": 0.61,
+      "changes": [],
+      "differs_on": 0,
+      "wells": 0.0,
+      "samples": 0.0,
+      "rig_runs": 0.0
+    },
+    {
+      "env": "timecourse_review",
+      "id": "do-not-repeat-good-time-courses",
+      "said": "Do not repeat a time course that passes its checks.",
+      "trap": "always_repeat",
+      "moot": false,
+      "kind": "judgment",
+      "group": "not_a_plate",
+      "priced_by": "review cases with a planted answer, not a new run",
+      "needs": null,
+      "also": null,
+      "upstream_of": null,
+      "teaches": "on average",
+      "win_rate": 0.74,
+      "changes": [],
+      "differs_on": 0,
+      "wells": 0.0,
+      "samples": 0.0,
+      "rig_runs": 0.0
+    },
+    {
+      "env": "gi_fluid_stability",
+      "id": "quench-must-stop-that-enzyme",
+      "said": "Stop gastric samples by neutralising them, not with the acid stop used for intestinal fluid or plasma.",
+      "trap": "acid_quench_in_sgf",
+      "moot": false,
+      "kind": "handling",
+      "group": "rig",
+      "priced_by": "the physical quantity it changes, measured directly on the rig; then a few same-day paired runs",
+      "needs": "each gastric sample split into the acid and the base quench",
+      "also": null,
+      "upstream_of": null,
+      "teaches": "on average",
+      "win_rate": 0.8125,
+      "changes": [
+        "sgf_quench"
+      ],
+      "differs_on": 3,
+      "wells": 0.0,
+      "samples": 128.0,
+      "rig_runs": 1.0
+    },
+    {
+      "env": "gi_fluid_stability",
+      "id": "quench-must-stop-that-enzyme",
+      "said": "Stop gastric samples by neutralising them, not with the acid stop used for intestinal fluid or plasma.",
+      "trap": "acid_quench_in_sgf_warm_overnight",
+      "moot": false,
+      "kind": "handling",
+      "group": "rig",
+      "priced_by": "the physical quantity it changes, measured directly on the rig; then a few same-day paired runs",
+      "needs": "the same split, injected again after the hold, with the temperature of the held plate",
+      "also": null,
+      "upstream_of": null,
+      "teaches": "yes",
+      "win_rate": 1.0,
+      "changes": [
+        "hold_min",
+        "hold_temp_c",
+        "sgf_quench"
+      ],
+      "differs_on": 3,
+      "wells": 0.0,
+      "samples": 128.0,
+      "rig_runs": 1.0
+    },
+    {
+      "env": "gi_fluid_stability",
+      "id": "fresh-enzyme-every-run",
+      "said": "Dissolve the pepsin and the pancreatin fresh for every run.",
+      "trap": "stale_enzyme",
+      "moot": false,
+      "kind": "handling",
+      "group": "rig",
+      "priced_by": "the physical quantity it changes, measured directly on the rig; then a few same-day paired runs",
+      "needs": "a control substrate in fresh and aged fluid, the age and storage stated",
+      "also": null,
+      "upstream_of": null,
+      "teaches": "yes",
+      "win_rate": 0.92,
+      "changes": [
+        "fresh_enzyme"
+      ],
+      "differs_on": 3,
+      "wells": 0.0,
+      "samples": 128.0,
+      "rig_runs": 1.0
+    },
+    {
+      "env": "gi_fluid_stability",
+      "id": "run-an-activity-control",
+      "said": "Run a control substrate with a known half-life in every fluid, every run.",
+      "trap": "no_activity_control",
+      "moot": false,
+      "kind": "qc",
+      "group": "faults",
+      "priced_by": "the same item left out of runs that carry a fault or a liability, and how often faults happen",
+      "needs": "an aged or off-specification enzyme lot among the runs",
+      "also": null,
+      "upstream_of": null,
+      "teaches": "yes",
+      "win_rate": 0.995,
+      "changes": [
+        "activity_control"
+      ],
+      "differs_on": 3,
+      "wells": 0.0,
+      "samples": 96.0,
+      "rig_runs": 1.0
+    },
+    {
+      "env": "gi_fluid_stability",
+      "id": "early-time-points-for-fast-peptides",
+      "said": "Take the first samples within the first few minutes.",
+      "trap": "late_first_point",
+      "moot": false,
+      "kind": "data",
+      "group": "records",
+      "priced_by": "a record of a correct run designed for it, with the same data left out",
+      "needs": "one well per time point or a large incubation, and the real quench time of every sample",
+      "also": null,
+      "upstream_of": null,
+      "teaches": "on average",
+      "win_rate": 0.87,
+      "changes": [
+        "timepoints_min"
+      ],
+      "differs_on": 3,
+      "wells": 0.0,
+      "samples": 128.0,
+      "rig_runs": 1.0
+    },
+    {
+      "env": "gi_fluid_stability",
+      "id": "true-time-zero",
+      "said": "Make time zero by quenching the fluid before the compound meets the enzyme.",
+      "trap": "no_true_time_zero",
+      "moot": false,
+      "kind": "data",
+      "group": "records",
+      "priced_by": "a record of a correct run designed for it, with the same data left out",
+      "needs": "both zeros on the run: the pre-quenched one and the earliest sample after the spike, with its real quench time",
+      "also": null,
+      "upstream_of": null,
+      "teaches": "on average",
+      "win_rate": 0.785,
+      "changes": [
+        "prequenched_t0"
+      ],
+      "differs_on": 3,
+      "wells": 0.0,
+      "samples": 128.0,
+      "rig_runs": 1.0
+    },
+    {
+      "env": "gi_fluid_stability",
+      "id": "gi-internal-standard",
+      "said": "Quench into internal standard and read the peptide over it.",
+      "trap": "no_internal_standard",
+      "moot": false,
+      "kind": "data",
+      "group": "records",
+      "priced_by": "a record of a correct run designed for it, with the same data left out",
+      "needs": "a fixed injection order: the price holds for that order only",
+      "also": null,
+      "upstream_of": null,
+      "teaches": "yes",
+      "win_rate": 0.995,
+      "changes": [
+        "internal_standard"
+      ],
+      "differs_on": 3,
+      "wells": 0.0,
+      "samples": 128.0,
+      "rig_runs": 1.0
+    },
+    {
+      "env": "gi_fluid_stability",
+      "id": "the-enzyme-weakens-during-the-run",
+      "said": "Fit against what the enzyme could still do, not against the clock.",
+      "trap": "ignore_enzyme_decay",
+      "moot": false,
+      "kind": "reading",
+      "group": "records",
+      "priced_by": "a complete raw record of a correct run, read again",
+      "needs": "the activity of each fluid lot followed over the incubation: a series of its own, since the control substrate is gone too soon",
+      "also": null,
+      "upstream_of": null,
+      "teaches": "yes",
+      "win_rate": 0.935,
+      "changes": [],
+      "differs_on": 0,
+      "wells": 0.0,
+      "samples": 128.0,
+      "rig_runs": 1.0
+    },
+    {
+      "env": "gi_camp_potency",
+      "id": "forskolin-at-its-ec80",
+      "said": "Run the agonist plate with forskolin near its EC80, not at a saturating dose.",
+      "trap": "forskolin_too_high",
+      "moot": false,
+      "kind": "condition",
+      "group": "grids",
+      "priced_by": "a grid of assay conditions, repeated over days and cell batches",
+      "needs": null,
+      "also": null,
+      "upstream_of": null,
+      "teaches": "no",
+      "win_rate": 0.4375,
+      "changes": [
+        "cells_k",
+        "forskolin_uM"
+      ],
+      "differs_on": 3,
+      "wells": 86.0,
+      "samples": 0.0,
+      "rig_runs": 2.0
+    },
+    {
+      "env": "gi_camp_potency",
+      "id": "titrate-forskolin-on-your-cells",
+      "said": "Titrate forskolin on your own cells before the agonist plate; do not run it on handbook conditions.",
+      "trap": "skip_titration",
+      "moot": false,
+      "kind": "condition",
+      "group": "grids",
+      "priced_by": "a grid of assay conditions, repeated over days and cell batches",
+      "needs": null,
+      "also": null,
+      "upstream_of": null,
+      "teaches": "no",
+      "win_rate": 0.535,
+      "changes": [
+        "-run_titration",
+        "cells_k",
+        "forskolin_uM"
+      ],
+      "differs_on": 3,
+      "wells": 60.0,
+      "samples": 0.0,
+      "rig_runs": 1.0
+    },
+    {
+      "env": "gi_camp_potency",
+      "id": "gi-needs-forskolin",
+      "said": "A Gi agonist plate needs forskolin in every cell well.",
+      "trap": "no_forskolin",
+      "moot": false,
+      "kind": "condition",
+      "group": "grids",
+      "priced_by": "a grid of assay conditions, repeated over days and cell batches",
+      "needs": null,
+      "also": null,
+      "upstream_of": null,
+      "teaches": "yes",
+      "win_rate": 0.9974999999999999,
+      "changes": [
+        "cells_k",
+        "forskolin_uM"
+      ],
+      "differs_on": 3,
+      "wells": 86.0,
+      "samples": 0.0,
+      "rig_runs": 2.0
+    },
+    {
+      "env": "gi_camp_potency",
+      "id": "block-the-phosphodiesterases",
+      "said": "Put IBMX in the stimulation buffer.",
+      "trap": "no_ibmx",
+      "moot": false,
+      "kind": "condition",
+      "group": "grids",
+      "priced_by": "a grid of assay conditions, repeated over days and cell batches",
+      "needs": null,
+      "also": null,
+      "upstream_of": null,
+      "teaches": "on average",
+      "win_rate": 0.7875,
+      "changes": [
+        "cells_k",
+        "forskolin_uM",
+        "ibmx"
+      ],
+      "differs_on": 3,
+      "wells": 86.0,
+      "samples": 0.0,
+      "rig_runs": 2.0
+    },
+    {
+      "env": "gi_camp_potency",
+      "id": "camp-through-the-standard-curve",
+      "said": "Convert the ratio to cAMP through the standard curve before fitting potency.",
+      "trap": "raw_ratio",
+      "moot": false,
+      "kind": "reading",
+      "group": "records",
+      "priced_by": "a complete raw record of a correct run, read again",
+      "needs": null,
+      "also": null,
+      "upstream_of": null,
+      "teaches": "yes",
+      "win_rate": 0.975,
+      "changes": [],
+      "differs_on": 0,
+      "wells": 86.0,
+      "samples": 0.0,
+      "rig_runs": 2.0
+    },
+    {
+      "env": "gi_camp_potency",
+      "id": "pin-the-forskolin-plateau",
+      "said": "Pin the top of every inhibition curve on the forskolin-only controls.",
+      "trap": "free_plateau",
+      "moot": false,
+      "kind": "reading",
+      "group": "records",
+      "priced_by": "a complete raw record of a correct run, read again",
+      "needs": null,
+      "also": null,
+      "upstream_of": null,
+      "teaches": "on average",
+      "win_rate": 0.695,
+      "changes": [],
+      "differs_on": 0,
+      "wells": 86.0,
+      "samples": 0.0,
+      "rig_runs": 2.0
+    },
+    {
+      "env": "gi_camp_potency",
+      "id": "titrate-cells-onto-the-curve",
+      "said": "Titrate the cell number so the forskolin control lands inside the standard curve; more cells is not more signal.",
+      "trap": "too_many_cells",
+      "moot": false,
+      "kind": "condition",
+      "group": "grids",
+      "priced_by": "a grid of assay conditions, repeated over days and cell batches",
+      "needs": null,
+      "also": null,
+      "upstream_of": null,
+      "teaches": "on average",
+      "win_rate": 0.7000000000000001,
+      "changes": [
+        "cells_k"
+      ],
+      "differs_on": 2,
+      "wells": 86.0,
+      "samples": 0.0,
+      "rig_runs": 2.0
+    },
+    {
+      "env": "gi_camp_potency",
+      "id": "mix-the-agonist-ladder",
+      "said": "Mix after every transfer in the agonist dilution.",
+      "trap": "no_mix",
+      "moot": false,
+      "kind": "handling",
+      "group": "rig",
+      "priced_by": "the physical quantity it changes, measured directly on the rig; then a few same-day paired runs",
+      "needs": "a dye ladder with and without mixing",
+      "also": null,
+      "upstream_of": null,
+      "teaches": "yes",
+      "win_rate": 0.995,
+      "changes": [
+        "mix"
+      ],
+      "differs_on": 3,
+      "wells": 86.0,
+      "samples": 0.0,
+      "rig_runs": 2.0
+    },
+    {
+      "env": "selectivity_panel",
+      "id": "dose-off-targets-to-the-limit",
+      "said": "Dose the off-target plates up to the highest concentration the assay allows, not over the on-target range.",
+      "trap": "on_target_range",
+      "moot": false,
+      "kind": "dose",
+      "group": "grids",
+      "priced_by": "a dense grid of concentrations where every well is dosed on its own; on a serial ladder, a second ladder",
+      "needs": "on a serial ladder this is a second ladder, run beside the first",
+      "also": null,
+      "upstream_of": null,
+      "teaches": "yes",
+      "win_rate": 0.995,
+      "changes": [
+        "top_conc_nM"
+      ],
+      "differs_on": 3,
+      "wells": 300.0,
+      "samples": 0.0,
+      "rig_runs": 5.0
+    },
+    {
+      "env": "selectivity_panel",
+      "id": "claim-only-the-tested-range",
+      "said": "When nothing is seen, say 'at least' up to the top dose you tested and no further.",
+      "trap": "claim_past_range",
+      "moot": false,
+      "kind": "convention",
+      "group": "not_a_plate",
+      "priced_by": "nothing on a plate: a rule about what may be claimed",
+      "needs": null,
+      "also": null,
+      "upstream_of": null,
+      "teaches": "yes",
+      "win_rate": 0.9450000000000001,
+      "changes": [],
+      "differs_on": 0,
+      "wells": 300.0,
+      "samples": 0.0,
+      "rig_runs": 5.0
+    },
+    {
+      "env": "selectivity_panel",
+      "id": "a-curve-where-you-need-a-potency",
+      "said": "A single concentration tells you whether something happens; run a curve wherever you need a potency.",
+      "trap": "single_point",
+      "moot": false,
+      "kind": "dose",
+      "group": "grids",
+      "priced_by": "a dense grid of concentrations where every well is dosed on its own; on a serial ladder, a second ladder",
+      "needs": "it is the top well of the expert's own ladder, so a plain record of the expert's plate holds it today",
+      "also": null,
+      "upstream_of": null,
+      "teaches": "yes",
+      "win_rate": 0.955,
+      "changes": [
+        "n_points"
+      ],
+      "differs_on": 3,
+      "wells": 156.0,
+      "samples": 0.0,
+      "rig_runs": 5.0
+    },
+    {
+      "env": "selectivity_panel",
+      "id": "a-curve-where-you-need-a-potency",
+      "said": "A single concentration tells you whether something happens; run a curve wherever you need a potency.",
+      "trap": "single_point_as_curve",
+      "moot": false,
+      "kind": "dose",
+      "group": "grids",
+      "priced_by": "a dense grid of concentrations where every well is dosed on its own; on a serial ladder, a second ladder",
+      "needs": "it is the top well of the expert's own ladder, so a plain record of the expert's plate holds it today; it also misreports the hit, which no rig field shows",
+      "also": null,
+      "upstream_of": null,
+      "teaches": "yes",
+      "win_rate": 0.92,
+      "changes": [
+        "n_points"
+      ],
+      "differs_on": 3,
+      "wells": 156.0,
+      "samples": 0.0,
+      "rig_runs": 5.0
+    },
+    {
+      "env": "selectivity_panel",
+      "id": "controls-on-every-panel-plate",
+      "said": "Put negative and positive controls on every off-target plate.",
+      "trap": "no_controls",
+      "moot": false,
+      "kind": "qc",
+      "group": "faults",
+      "priced_by": "the same item left out of runs that carry a fault or a liability, and how often faults happen",
+      "needs": "a run with a planted cell, reader or reagent fault; a ladder mistake does not touch the control wells, so the handling arms cannot show it",
+      "also": null,
+      "upstream_of": null,
+      "teaches": "yes",
+      "win_rate": 1.0,
+      "changes": [
+        "controls_per_side"
+      ],
+      "differs_on": 3,
+      "wells": 252.0,
+      "samples": 0.0,
+      "rig_runs": 5.0
+    },
+    {
+      "env": "selectivity_panel",
+      "id": "cover-the-whole-panel",
+      "said": "Spend the plates on the panel: every off-target needs data before any window can be stated.",
+      "trap": "on_target_only",
+      "moot": false,
+      "kind": "data",
+      "group": "records",
+      "priced_by": "a record of a correct run designed for it, with the same data left out",
+      "needs": null,
+      "also": null,
+      "upstream_of": null,
+      "teaches": "yes",
+      "win_rate": 1.0,
+      "changes": [
+        "-run_plate"
+      ],
+      "differs_on": 3,
+      "wells": 60.0,
+      "samples": 0.0,
+      "rig_runs": 5.0
+    },
+    {
+      "env": "selectivity_panel",
+      "id": "compare-potencies-in-analyte-units",
+      "said": "Read every target's plate through its own standard curve before you compare potencies.",
+      "trap": "raw_ratio",
+      "moot": false,
+      "kind": "reading",
+      "group": "records",
+      "priced_by": "a complete raw record of a correct run, read again",
+      "needs": null,
+      "also": null,
+      "upstream_of": null,
+      "teaches": "on average",
+      "win_rate": 0.865,
+      "changes": [],
+      "differs_on": 0,
+      "wells": 300.0,
+      "samples": 0.0,
+      "rig_runs": 5.0
+    },
+    {
+      "env": "selectivity_panel",
+      "id": "compare-potencies-in-analyte-units",
+      "said": "Read every target's plate through its own standard curve before you compare potencies.",
+      "trap": "no_standards",
+      "moot": false,
+      "kind": "data",
+      "group": "records",
+      "priced_by": "a record of a correct run designed for it, with the same data left out",
+      "needs": null,
+      "also": null,
+      "upstream_of": null,
+      "teaches": "yes",
+      "win_rate": 1.0,
+      "changes": [
+        "standards"
+      ],
+      "differs_on": 3,
+      "wells": 268.0,
+      "samples": 0.0,
+      "rig_runs": 5.0
+    },
+    {
+      "env": "selectivity_panel",
+      "id": "a-bound-is-not-a-number",
+      "said": "Report an inactive off-target as greater than the top dose, never as the top dose.",
+      "trap": "inactive_as_number",
+      "moot": false,
+      "kind": "convention",
+      "group": "not_a_plate",
+      "priced_by": "nothing on a plate: a rule about what may be claimed",
+      "needs": null,
+      "also": null,
+      "upstream_of": null,
+      "teaches": "on average",
+      "win_rate": 0.8575,
+      "changes": [],
+      "differs_on": 0,
+      "wells": 300.0,
+      "samples": 0.0,
+      "rig_runs": 5.0
+    },
+    {
+      "env": "cytotox_window",
+      "id": "match-the-dmso",
+      "said": "Keep the DMSO the same in every well, the vehicle control included.",
+      "trap": "unmatched_dmso",
+      "moot": false,
+      "kind": "handling",
+      "group": "rig",
+      "priced_by": "the physical quantity it changes, measured directly on the rig; then a few same-day paired runs",
+      "needs": "a DMSO tolerance curve on the cells; here the mistake is punished by a plate-map rule, not by a simulated effect",
+      "also": null,
+      "upstream_of": null,
+      "teaches": "yes",
+      "win_rate": 1.0,
+      "changes": [
+        "match_dmso"
+      ],
+      "differs_on": 3,
+      "wells": 96.0,
+      "samples": 0.0,
+      "rig_runs": 1.0
+    },
+    {
+      "env": "cytotox_window",
+      "id": "expose-long-enough",
+      "said": "Read viability after 72 hours, not after one day.",
+      "trap": "short_exposure",
+      "moot": false,
+      "kind": "condition",
+      "group": "grids",
+      "priced_by": "a grid of assay conditions, repeated over days and cell batches",
+      "needs": "staggered dosing or a readout that does not end the plate, and a slow-acting reference compound",
+      "also": null,
+      "upstream_of": null,
+      "teaches": "on average",
+      "win_rate": 0.8025,
+      "changes": [
+        "exposure_h"
+      ],
+      "differs_on": 3,
+      "wells": 96.0,
+      "samples": 0.0,
+      "rig_runs": 1.0
+    },
+    {
+      "env": "cytotox_window",
+      "id": "keep-multi-day-plates-off-the-outer-ring",
+      "said": "Keep cells and controls off the outer ring in a multi-day assay.",
+      "trap": "edge_wells",
+      "moot": false,
+      "kind": "position",
+      "group": "rig",
+      "priced_by": "uniformity plates and a split layout on one plate",
+      "needs": "uniformity plates and a split inner and outer layout",
+      "also": null,
+      "upstream_of": null,
+      "teaches": "on average",
+      "win_rate": 0.785,
+      "changes": [
+        "avoid_edges"
+      ],
+      "differs_on": 3,
+      "wells": 84.0,
+      "samples": 0.0,
+      "rig_runs": 1.0
+    },
+    {
+      "env": "cytotox_window",
+      "id": "full-kill-control-on-every-plate",
+      "said": "Put a full-kill control next to the vehicle control on every plate.",
+      "trap": "no_kill_control",
+      "moot": false,
+      "kind": "qc",
+      "group": "faults",
+      "priced_by": "the same item left out of runs that carry a fault or a liability, and how often faults happen",
+      "needs": "a run with a planted cell, reader or reagent fault; a ladder mistake does not touch the control wells, so the handling arms cannot show it",
+      "also": null,
+      "upstream_of": null,
+      "teaches": "yes",
+      "win_rate": 1.0,
+      "changes": [
+        "kill_controls"
+      ],
+      "differs_on": 3,
+      "wells": 86.0,
+      "samples": 0.0,
+      "rig_runs": 1.0
+    },
+    {
+      "env": "cytotox_window",
+      "id": "check-the-readout-without-cells",
+      "said": "Run the compound against the detection reagent without cells before you call a loss of signal toxicity.",
+      "trap": "no_interference_control",
+      "moot": false,
+      "kind": "qc",
+      "group": "faults",
+      "priced_by": "the same item left out of runs that carry a fault or a liability, and how often faults happen",
+      "needs": "a reference compound that interferes with the readout",
+      "also": null,
+      "upstream_of": null,
+      "teaches": "on average",
+      "win_rate": 0.67,
+      "changes": [
+        "interference_control"
+      ],
+      "differs_on": 3,
+      "wells": 46.0,
+      "samples": 0.0,
+      "rig_runs": 1.0
+    },
+    {
+      "env": "cytotox_window",
+      "id": "nominal-is-not-exposure-above-solubility",
+      "said": "Do not count a dose above the solubility limit as exposure.",
+      "trap": "nominal_above_solubility",
+      "moot": false,
+      "kind": "reading",
+      "group": "records",
+      "priced_by": "a complete raw record of a correct run, read again",
+      "needs": "a turbidity read or a solubility measurement in the same medium",
+      "also": null,
+      "upstream_of": null,
+      "teaches": "yes",
+      "win_rate": 0.9325,
+      "changes": [],
+      "differs_on": 0,
+      "wells": 96.0,
+      "samples": 0.0,
+      "rig_runs": 1.0
+    },
+    {
+      "env": "cytotox_window",
+      "id": "report-clean-as-a-bound",
+      "said": "When nothing dies up to the top dose, report the CC50 as greater than the top dose, not as a number.",
+      "trap": "exact_not_bound",
+      "moot": false,
+      "kind": "convention",
+      "group": "not_a_plate",
+      "priced_by": "nothing on a plate: a rule about what may be claimed",
+      "needs": null,
+      "also": null,
+      "upstream_of": null,
+      "teaches": "yes",
+      "win_rate": 1.0,
+      "changes": [],
+      "differs_on": 0,
+      "wells": 96.0,
+      "samples": 0.0,
+      "rig_runs": 1.0
+    }
+  ],
+  "by_kind": {
+    "reading": {
+      "pairs": 6,
+      "yes": 3,
+      "on average": 3,
+      "no": 0,
+      "no, it rewards the mistake": 0,
+      "not measured": 0
+    },
+    "data": {
+      "pairs": 9,
+      "yes": 6,
+      "on average": 3,
+      "no": 0,
+      "no, it rewards the mistake": 0,
+      "not measured": 0
+    },
+    "dose": {
+      "pairs": 4,
+      "yes": 4,
+      "on average": 0,
+      "no": 0,
+      "no, it rewards the mistake": 0,
+      "not measured": 0
+    },
+    "condition": {
+      "pairs": 10,
+      "yes": 1,
+      "on average": 6,
+      "no": 3,
+      "no, it rewards the mistake": 0,
+      "not measured": 0
+    },
+    "handling": {
+      "pairs": 10,
+      "yes": 8,
+      "on average": 2,
+      "no": 0,
+      "no, it rewards the mistake": 0,
+      "not measured": 0
+    },
+    "position": {
+      "pairs": 4,
+      "yes": 0,
+      "on average": 4,
+      "no": 0,
+      "no, it rewards the mistake": 0,
+      "not measured": 0
+    },
+    "qc": {
+      "pairs": 6,
+      "yes": 5,
+      "on average": 1,
+      "no": 0,
+      "no, it rewards the mistake": 0,
+      "not measured": 0
+    },
+    "convention": {
+      "pairs": 3,
+      "yes": 2,
+      "on average": 1,
+      "no": 0,
+      "no, it rewards the mistake": 0,
+      "not measured": 0
+    },
+    "upstream": {
+      "pairs": 4,
+      "yes": 0,
+      "on average": 2,
+      "no": 2,
+      "no, it rewards the mistake": 0,
+      "not measured": 0
+    },
+    "strategy": {
+      "pairs": 2,
+      "yes": 1,
+      "on average": 1,
+      "no": 0,
+      "no, it rewards the mistake": 0,
+      "not measured": 0
+    },
+    "judgment": {
+      "pairs": 4,
+      "yes": 0,
+      "on average": 4,
+      "no": 0,
+      "no, it rewards the mistake": 0,
+      "not measured": 0
+    }
+  },
+  "by_group": {
+    "records": 15,
+    "grids": 14,
+    "rig": 14,
+    "faults": 6,
+    "not_a_plate": 13
+  },
+  "by_env": {
+    "dose_response": {
+      "records": 1,
+      "grids": 1,
+      "rig": 4,
+      "faults": 1,
+      "not_a_plate": 0
+    },
+    "stability": {
+      "records": 4,
+      "grids": 0,
+      "rig": 3,
+      "faults": 1,
+      "not_a_plate": 0
+    },
+    "assay_window": {
+      "records": 0,
+      "grids": 4,
+      "rig": 1,
+      "faults": 0,
+      "not_a_plate": 0
+    },
+    "lead_opt": {
+      "records": 0,
+      "grids": 0,
+      "rig": 0,
+      "faults": 0,
+      "not_a_plate": 6
+    },
+    "plate_review": {
+      "records": 0,
+      "grids": 0,
+      "rig": 0,
+      "faults": 0,
+      "not_a_plate": 2
+    },
+    "timecourse_review": {
+      "records": 0,
+      "grids": 0,
+      "rig": 0,
+      "faults": 0,
+      "not_a_plate": 2
+    },
+    "gi_fluid_stability": {
+      "records": 4,
+      "grids": 0,
+      "rig": 3,
+      "faults": 1,
+      "not_a_plate": 0
+    },
+    "gi_camp_potency": {
+      "records": 2,
+      "grids": 5,
+      "rig": 1,
+      "faults": 0,
+      "not_a_plate": 0
+    },
+    "selectivity_panel": {
+      "records": 3,
+      "grids": 3,
+      "rig": 0,
+      "faults": 1,
+      "not_a_plate": 2
+    },
+    "cytotox_window": {
+      "records": 1,
+      "grids": 1,
+      "rig": 2,
+      "faults": 2,
+      "not_a_plate": 1
+    }
+  },
+  "times": {
+    "stability": [
+      0.0,
+      5.0,
+      10.0,
+      15.0,
+      20.0,
+      30.0,
+      60.0,
+      120.0,
+      240.0,
+      360.0
+    ],
+    "gi_fluid_stability": [
+      0.0,
+      2.0,
+      5.0,
+      10.0,
+      15.0,
+      20.0,
+      30.0,
+      45.0,
+      60.0,
+      90.0,
+      120.0,
+      240.0
+    ]
+  },
+  "grids": {
+    "dose_response": {
+      "dilution_factor": [
+        "narrow_range"
+      ],
+      "n_points": [
+        "narrow_range"
+      ],
+      "top_conc_nM": [
+        "narrow_range"
+      ]
+    },
+    "assay_window": {
+      "cells_k": [
+        "max_cells",
+        "min_cells",
+        "kit_default",
+        "raw_ratio_zprime"
+      ],
+      "stim_min": [
+        "max_cells",
+        "min_cells",
+        "kit_default",
+        "raw_ratio_zprime"
+      ]
+    },
+    "gi_camp_potency": {
+      "cells_k": [
+        "forskolin_too_high",
+        "skip_titration",
+        "no_forskolin",
+        "no_ibmx",
+        "too_many_cells"
+      ],
+      "forskolin_uM": [
+        "forskolin_too_high",
+        "skip_titration",
+        "no_forskolin",
+        "no_ibmx"
+      ],
+      "ibmx": [
+        "no_ibmx"
+      ]
+    },
+    "selectivity_panel": {
+      "top_conc_nM": [
+        "on_target_range"
+      ],
+      "n_points": [
+        "single_point",
+        "single_point_as_curve"
+      ]
+    },
+    "cytotox_window": {
+      "exposure_h": [
+        "short_exposure"
+      ]
+    }
+  },
+  "arms": [
+    {
+      "env": "dose_response",
+      "arm": "expert",
+      "kind": "reference",
+      "teaches": null,
+      "wells": 60.0,
+      "samples": 0.0
+    },
+    {
+      "env": "dose_response",
+      "arm": "no_mix",
+      "kind": "handling",
+      "teaches": "yes",
+      "wells": 60.0,
+      "samples": 0.0
+    },
+    {
+      "env": "dose_response",
+      "arm": "reuse_tips",
+      "kind": "handling",
+      "teaches": "on average",
+      "wells": 60.0,
+      "samples": 0.0
+    },
+    {
+      "env": "dose_response",
+      "arm": "thin_ladder",
+      "kind": "handling",
+      "teaches": "yes",
+      "wells": 60.0,
+      "samples": 0.0
+    },
+    {
+      "env": "stability",
+      "arm": "expert",
+      "kind": "reference",
+      "teaches": null,
+      "wells": 0.0,
+      "samples": 48.0
+    },
+    {
+      "env": "stability",
+      "arm": "no_mix",
+      "kind": "handling",
+      "teaches": "yes",
+      "wells": 0.0,
+      "samples": 48.0
+    },
+    {
+      "env": "stability",
+      "arm": "no_lid_on_edge_wells",
+      "kind": "handling",
+      "teaches": "yes",
+      "wells": 0.0,
+      "samples": 48.0
+    },
+    {
+      "env": "gi_fluid_stability",
+      "arm": "expert",
+      "kind": "reference",
+      "teaches": null,
+      "wells": 0.0,
+      "samples": 128.0
+    },
+    {
+      "env": "gi_fluid_stability",
+      "arm": "acid_quench_in_sgf",
+      "kind": "handling",
+      "teaches": "on average",
+      "wells": 0.0,
+      "samples": 128.0
+    },
+    {
+      "env": "gi_fluid_stability",
+      "arm": "acid_quench_in_sgf_warm_overnight",
+      "kind": "handling",
+      "teaches": "yes",
+      "wells": 0.0,
+      "samples": 128.0
+    },
+    {
+      "env": "gi_fluid_stability",
+      "arm": "stale_enzyme",
+      "kind": "handling",
+      "teaches": "yes",
+      "wells": 0.0,
+      "samples": 128.0
+    },
+    {
+      "env": "gi_camp_potency",
+      "arm": "expert",
+      "kind": "reference",
+      "teaches": null,
+      "wells": 86.0,
+      "samples": 0.0
+    },
+    {
+      "env": "gi_camp_potency",
+      "arm": "no_mix",
+      "kind": "handling",
+      "teaches": "yes",
+      "wells": 86.0,
+      "samples": 0.0
+    },
+    {
+      "env": "cytotox_window",
+      "arm": "expert",
+      "kind": "reference",
+      "teaches": null,
+      "wells": 96.0,
+      "samples": 0.0
+    },
+    {
+      "env": "cytotox_window",
+      "arm": "unmatched_dmso",
+      "kind": "handling",
+      "teaches": "yes",
+      "wells": 96.0,
+      "samples": 0.0
+    }
+  ],
+  "totals": {
+    "arms": 10,
+    "reference_arms": 5,
+    "pairs_per_arm": 8,
+    "runs": 120,
+    "wells": 4832,
+    "samples": 5248
+  },
+  "unexercised": {
+    "assay_window": [
+      "conditions"
+    ],
+    "dose_response": [
+      "replicates"
+    ],
+    "gi_fluid_stability": [
+      "fluids",
+      "replicates",
+      "sif_quench"
+    ],
+    "gi_camp_potency": [
+      "controls_per_side",
+      "dilution_factor",
+      "n_points",
+      "replicates",
+      "standards",
+      "stim_min",
+      "top_conc_nM",
+      "transfer_ul"
+    ],
+    "selectivity_panel": [
+      "avoid_edges",
+      "compounds",
+      "dilution_factor",
+      "lid",
+      "mix",
+      "new_tips",
+      "replicates",
+      "target",
+      "transfer_ul"
+    ],
+    "cytotox_window": [
+      "cells_k",
+      "dilution_factor",
+      "lid",
+      "n_points",
+      "replicates",
+      "top_conc_uM",
+      "vehicle_controls"
+    ]
+  },
+  "unexercised_runs": [
+    "commit",
+    "run"
+  ],
+  "seeds": [
+    0,
+    1,
+    2
+  ],
+  "assumptions": {
+    "sd_within": 0.15,
+    "delta": 0.25,
+    "alpha": 0.05,
+    "power": 0.8
+  },
+  "counts": {
+    "pairs": 62,
+    "moot": 3,
+    "records": 15,
+    "grids": 14,
+    "rig": 14,
+    "faults": 6,
+    "not_a_plate": 13,
+    "records_plain": 6,
+    "records_conditional": 9,
+    "dose_top_well": 2
+  }
+}

@@ -81,6 +81,8 @@ uv venv --python 3.12 .venv && uv pip install -e ".[dev]"
 .venv/bin/drugdev-gym qc --seeds 200        # writes results/cards/*.md
 .venv/bin/drugdev-gym learn                 # writes results/learning.md
 .venv/bin/drugdev-gym knowledge             # writes results/knowledge.md
+.venv/bin/drugdev-gym campaign              # writes results/campaign.md and campaign.json
+.venv/bin/drugdev-gym baseline --model scripted:expert --tasks 5 --out /tmp/dry   # the model harness, dry run
 .venv/bin/drugdev-gym cases --env plate_review --balanced --out cases.json   # blind cases for a human expert
 .venv/bin/drugdev-gym score judgments.json --name NAME                       # score their calls against planted truth
 .venv/bin/drugdev-gym rollouts --format sft --min-reward 0.6 --out data.jsonl # training data from the environments
@@ -265,13 +267,45 @@ An environment is only useful for post-training if it produces data cheaply.
 `drugdev-gym rollouts` runs policies through the environments and writes JSON lines in two
 shapes: whole episodes (every observation, action and reward, with the hidden truth in the
 final record), or prompt and response pairs for supervised fine-tuning, filtered by reward,
-with the truth never in a prompt. Fifty expert episodes in each of six environments take
-about seven seconds on a laptop.
+each prompt carrying the episode so far and never the truth. 50 expert episodes in each of
+the 10 environments take about 16 seconds on a laptop.
 
 These rollouts come from scripted policies, so a model fine-tuned on them learns the
 scripted expert and nothing more. They are a starting point and a source of labelled
 negatives (each trap comes with its reward). Real post-training would let the model act in
 the environment and learn from the reward itself; no model has done that here yet.
+
+## Model baseline: what a model scores, and which mistakes it makes
+
+`drugdev-gym baseline` runs a language model through the environments. Per environment it
+reports the reward next to the scripted expert and the null policy on the same seeds, how
+the episodes ended, the tokens used, and how often the model made each named mistake.
+**No model has been run with it yet.**
+
+```bash
+.venv/bin/drugdev-gym baseline --model scripted:expert --tasks 5 --out /tmp/dry    # a dry run, no model
+uv pip install -e ".[llm]"                                                          # the Anthropic SDK
+.venv/bin/drugdev-gym baseline --model anthropic:claude-opus-5-5 --env dose_response --tasks 20 --attempts 2
+```
+
+- **The protocol is plain text.** The model is shown the task, the analysis tools and each
+  observation, and ends every reply with one JSON object: an action, or a tool call. The
+  hidden truth and the reward never go to it.
+- **The tools are the analysis the scripted experts use** ([tools.py](src/drugdevgym/tools.py)),
+  called by name on data the model has already been shown. Every choice of reading is a
+  required argument with both options described the same way, so calling a tool does not
+  make the choice.
+- **Mistakes are read from what the model did.** Of the 62 rule-trap pairs, 44 are read from
+  the design it ran (17 of them only as an exact match of the trap's own number or time
+  points, which undercounts), 7 from the reading it chose in its last analysis call, and 11
+  are not detected: reporting conventions, campaign strategy, judgment calls, 2 interactions
+  counted on their single mistake, and 1 trap whose runs follow the data.
+- **Checked with the scripted policies.** Every scripted policy scores exactly the same
+  through the protocol as it does directly, in all 10 environments. Each of the 44 scripted
+  traps is caught making its own mistake, and the expert is caught making none.
+- **A real run spends money** and needs credentials the SDK can find. A refusal is recorded as
+  a refusal and nothing is retried on another model, because a baseline measures one model.
+  Baseline tasks use seeds from 300000 up.
 
 ## Sim to real: what exists and what does not
 
@@ -288,6 +322,36 @@ Built, and tested in simulation only:
 
 Not built: a compiler from worklists to a specific robot, and any run on hardware. The data
 needed to close the gap, in order, is laid out in [docs/DATA.md](docs/DATA.md).
+
+## Lab in the loop: what to measure first
+
+A real lab cannot answer every training attempt, so its measurements have to be chosen.
+`drugdev-gym campaign` sorts every rule-trap pair by the kind of choice the mistake changes,
+because that decides what real data would price it
+([results/campaign.md](results/campaign.md), [docs/LAB_LOOP.md](docs/LAB_LOOP.md)). Of the 62
+pairs that count:
+
+- 15 can be priced from complete raw records of correct runs: read the record the wrong way,
+  or leave out the data the mistake leaves out. 6 hold on a plain record. 9 need the record
+  to keep something specific, such as one well per time point.
+- 14 are a point on a grid. 10 are a setting of the assay, which moves between days and cell
+  batches, so the grid has to be repeated. 4 are a choice of concentrations: 2 are the top
+  well of the expert's own ladder, and 2 need a second ladder until every well is dosed on
+  its own.
+- 14 change something physical on the rig: 10 handling and 4 position. Direct measurement
+  comes first (a dye ladder, a sticky reference compound for tip reuse, plate weights,
+  uniformity plates), paired runs second.
+- 6 leave out run QC, and show their value only on a run that carries the fault the control
+  exists for.
+- 13 are not plate questions: reporting conventions, assay mistakes inside a campaign,
+  campaign strategy, and judgment.
+
+The kinds are drafts the expert has not read. An automated review, with one reviewer
+prompted to read as a bench scientist, already moved 14 of the 62 pairs. The simulator checks
+what each trap changes, by the 4 rules in [docs/LAB_LOOP.md](docs/LAB_LOOP.md). The plan will
+not build while a trap has no kind or a stated kind fails that check, and a test fails while
+any design field has none. Whether the named data would measure the cost on a bench is a
+judgment the check cannot make. Nothing in the plan is measured.
 
 ## What review caught
 
@@ -345,9 +409,11 @@ A failed gate is a result. Each held environment names the rule its reward canno
   reproducibility. Review labels are a hard cut at that tolerance, so some sit close to it.
 - Edge wells barely matter in the one-hour assays as simulated; that is a gap in the
   simulator, not a finding about edge wells.
-- The package is open, so anyone holding a task id can recompute its hidden truth. A
-  held-out evaluation needs private seeds from a wide range, and a blind human study needs
-  opaque case ids or answers frozen at export.
+- The package is open, so anyone holding a task id can recompute its hidden truth, and a
+  search over candidate seeds recovers it from a single observation, at about a millisecond
+  a seed in `dose_response`. Private seeds from a wide range are not enough: a held-out evaluation needs a
+  private salt held by whoever serves the tasks, and a blind human study needs opaque case
+  ids or answers frozen at export.
 - The half-life analysis drops points below the limit of quantification one injection at a
   time, which reads slightly long when a time point straddles the limit.
 
@@ -359,9 +425,13 @@ A failed gate is a result. Each held environment names the rule its reward canno
 - More environments: PK, solubility, hit triage, and antagonist potency, held on its branch (above).
   Each must ship with its card.
 - A PyLabRobot compiler for the worklists.
-- Level 1 and 2 data from [docs/DATA.md](docs/DATA.md): instrument QC, then reference-compound replays.
-- An LLM-agent harness over `env.spec()`, and a pass-rate profile of current models per
-  environment (difficulty calibration). No model has been run on these environments yet.
+- Level 1 and 2 data from [docs/DATA.md](docs/DATA.md): instrument QC, then reference-compound replays,
+  in the order of [docs/LAB_LOOP.md](docs/LAB_LOOP.md).
+- A schema and a validator for a returned run record.
+- A private salt for served tasks, and a manifest of seed ranges, versions and reward ranges.
+- Run the model baseline on 2 or 3 current models (the harness is built, no model has been
+  run): the reward per environment and how often a model makes each named mistake. This
+  comes before any lab run: a mistake no model makes is not worth a plate.
 - Replicate the learner over seeds before saying anything about domain randomization.
 - Close the `gate_bypass` exploit.
 - Close the loop on the environment factory: let agents propose the environments and traps

@@ -6,8 +6,9 @@ runs policies through environments and writes what happened, in two shapes:
 - episodes: every step of an episode (observation, action, reward) plus the final info with
   the hidden truth. This is the raw record, for RL or for analysis.
 - sft: prompt and response pairs for supervised fine-tuning, one per decision, taken only
-  from episodes that scored at least min_reward. The prompt is the task and what the agent
-  could see; the response is the action it took. The hidden truth is never in a prompt.
+  from episodes that scored at least min_reward. The prompt is the task and everything the
+  agent had seen and done up to that decision; the response is the action it took. The
+  hidden truth is never in a prompt.
 
 The policies in this repo are scripted, so these rollouts are synthetic demonstrations: a
 model fine-tuned on them learns the scripted expert and nothing more. Their use is as a
@@ -58,12 +59,18 @@ def episode(env_name: str, policy_name: str, seed: int, rig: str = "nominal") ->
 
 
 def sft_pairs(record: dict) -> list[dict]:
-    """Prompt and response pairs from one episode. No truth, no reward, no policy name in the prompt."""
-    pairs = []
+    """Prompt and response pairs from one episode. No truth, no reward, no policy name in the prompt.
+
+    Each prompt carries the episode so far: history holds every earlier observation with the action
+    taken on it. A report at the end of several runs is computed from all of them, so a prompt with
+    only the last observation would ask for numbers from data it does not show.
+    """
+    pairs, history = [], []
     for i, step in enumerate(record["steps"]):
-        prompt = {"task": record["spec"], "step": i + 1, "observation": step["observation"]}
+        prompt = {"task": record["spec"], "step": i + 1, "history": list(history), "observation": step["observation"]}
         pairs.append({"task": record["task"], "prompt": json.dumps(prompt, sort_keys=True),
                       "response": json.dumps(step["action"], sort_keys=True), "episode_reward": record["reward"]})
+        history.append({"observation": step["observation"], "action": step["action"]})
     return pairs
 
 

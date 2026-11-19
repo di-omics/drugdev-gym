@@ -23,12 +23,23 @@ def test_sft_prompts_never_contain_the_truth_or_the_outcome(env_name):
         record = rollouts.episode(env_name, policy, 100001)
         pairs = rollouts.sft_pairs(record)
         assert len(pairs) == len(record["steps"])
-        for pair in pairs:
+        for i, pair in enumerate(pairs):
             prompt = json.loads(pair["prompt"])
-            assert set(prompt) == {"task", "step", "observation"} and json.loads(pair["response"])["type"]
-            text = json.dumps(prompt["observation"])
+            assert set(prompt) == {"task", "step", "history", "observation"} and json.loads(pair["response"])["type"]
+            text = json.dumps([prompt["observation"], prompt["history"]])
             assert not any(word in text for word in HIDDEN), (env_name, policy)
             assert policy not in pair["prompt"] or policy in ("random", "null", "expert")
+            # the prompt carries the episode so far: every earlier observation with the action taken on it
+            assert prompt["history"] == [{"observation": s["observation"], "action": s["action"]}
+                                         for s in record["steps"][:i]]
+
+
+def test_a_report_after_several_runs_is_asked_from_all_the_data_it_used():
+    record = rollouts.episode("selectivity_panel", "expert", 100000)
+    last = json.loads(rollouts.sft_pairs(record)[-1]["prompt"])
+    plates = [h["observation"] for h in last["history"]] + [last["observation"]]
+    targets = [o["target"] for o in plates if "wells" in o]
+    assert len(set(targets)) == 5 and json.loads(rollouts.sft_pairs(record)[-1]["response"])["type"] == "report"
 
 
 def test_write_filters_sft_by_reward_and_counts(tmp_path):
